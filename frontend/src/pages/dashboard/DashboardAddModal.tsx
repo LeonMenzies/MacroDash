@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
     Dialog,
     DialogTitle,
@@ -13,12 +13,12 @@ import {
     ListItemIcon,
     Checkbox,
     Divider,
-} from '@mui/material';
-import { TileT } from 'types/ApiTypes';
-import usePostApi from 'hooks/usePostApi';
-import useFetchApi from 'hooks/useFetchApi';
-import { MosaicNode } from 'react-mosaic-component';
-import { DashboardTileMap } from './DashboardTileMap';
+} from "@mui/material";
+import { TileT } from "types/ApiTypes";
+import usePostApi from "hooks/usePostApi";
+import useFetchApi from "hooks/useFetchApi";
+import { MosaicNode } from "react-mosaic-component";
+import { DashboardTileMap } from "./DashboardTileMap";
 
 interface DashboardAddModalProps {
     open: boolean;
@@ -31,10 +31,13 @@ export const DashboardAddModal: React.FC<DashboardAddModalProps> = ({
     onClose,
     ownedTiles,
 }) => {
-    const [title, setTitle] = useState<string>('');
+    const [title, setTitle] = useState<string>("");
     const [checked, setChecked] = useState<string[]>([]);
-    const [saveDashboardResponse, newDashboardLoading, newDashboard] = usePostApi(`/dashboard/new`);
-    const [fetchDashboardsResponse, fetchDashboardsLoading, fetchDashboards] = useFetchApi<{ id: number, name: string, config: MosaicNode<string> }[]>(`/dashboard/list`);
+    const [, , newDashboard] = usePostApi(`/dashboard/new`);
+    const [, , fetchDashboards] =
+        useFetchApi<{ id: number; name: string; config: MosaicNode<string> }[]>(
+            `/dashboard/list`
+        );
 
     const handleToggle = (tileId: string) => () => {
         const currentIndex = checked.indexOf(tileId);
@@ -49,33 +52,31 @@ export const DashboardAddModal: React.FC<DashboardAddModalProps> = ({
         setChecked(newChecked);
     };
 
-
     const handleSave = () => {
         const tileKeys = Object.keys(DashboardTileMap);
         const firstThreeTiles = tileKeys.slice(0, 3);
 
         const newConfig: MosaicNode<string> = {
-            direction: 'row',
+            direction: "row",
             first: firstThreeTiles[0],
             second: {
-                direction: 'column',
+                direction: "column",
                 first: firstThreeTiles[1],
                 second: firstThreeTiles[2],
             },
         };
 
         newDashboard({
-            name: 'New Dashboard',
+            name: "New Dashboard",
             config: newConfig,
         }).then(() => {
             fetchDashboards();
         });
 
-        setTitle('');
+        setTitle("");
         setChecked([]);
         onClose();
     };
-
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -94,11 +95,17 @@ export const DashboardAddModal: React.FC<DashboardAddModalProps> = ({
                 <Box mt={2}>
                     <List>
                         {ownedTiles.map((tile) => (
-                            <ListItem key={tile.tile_id} component="li" onClick={handleToggle(tile.tile_id)}>
+                            <ListItem
+                                key={tile.tile_id}
+                                component="li"
+                                onClick={handleToggle(tile.tile_id)}
+                            >
                                 <ListItemIcon>
                                     <Checkbox
                                         edge="start"
-                                        checked={checked.indexOf(tile.tile_id) !== -1}
+                                        checked={
+                                            checked.indexOf(tile.tile_id) !== -1
+                                        }
                                         tabIndex={-1}
                                         disableRipple
                                     />
@@ -113,7 +120,11 @@ export const DashboardAddModal: React.FC<DashboardAddModalProps> = ({
                 <Button onClick={onClose} color="secondary">
                     Cancel
                 </Button>
-                <Button onClick={handleSave} color="primary" variant="contained">
+                <Button
+                    onClick={handleSave}
+                    color="primary"
+                    variant="contained"
+                >
                     Save
                 </Button>
             </DialogActions>

@@ -46,6 +46,7 @@ export const useFetchApi = <T>(endpoint: string, initialParams: Record<string, u
         setLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 

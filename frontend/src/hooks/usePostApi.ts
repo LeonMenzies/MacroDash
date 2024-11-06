@@ -44,6 +44,7 @@ export const usePostApi = <D, T>(endpoint: string): [ApiResponse<T>, boolean, (d
         setLoading(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
