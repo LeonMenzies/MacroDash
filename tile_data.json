@@ -1,0 +1,66 @@
+[
+    {
+        "id": 1,
+        "name": "FRED Release Calendar",
+        "description": "Displays a searchable and sortable list of FRED release dates.",
+        "tile_type": "calendar",
+        "config": {
+            "default_view": "month",
+            "show_weekends": true
+        },
+        "state": "active",
+        "created_at": "2024-10-03 22:13:30"
+    },
+    {
+        "id": 2,
+        "name": "Stock Ticker",
+        "description": "Shows a live chart with multiple stock tickers on a watchlist.",
+        "tile_type": "stock",
+        "config": {
+            "tickers": [
+                "AAPL",
+                "GOOGL",
+                "MSFT"
+            ],
+            "refresh_interval": 60
+        },
+        "state": "active",
+        "created_at": "2024-10-03 22:15:10"
+    },
+    {
+        "id": 3,
+        "name": "Weather Forecast",
+        "description": "Displays the current weather and a 7-day forecast for a specified location.",
+        "tile_type": "weather",
+        "config": {
+            "location": "New York, NY",
+            "units": "imperial"
+        },
+        "state": "active",
+        "created_at": "2024-10-03 22:15:16"
+    },
+    {
+        "id": 4,
+        "name": "News Feed",
+        "description": "Shows the latest news headlines from a specified news source.",
+        "tile_type": "news",
+        "config": {
+            "source": "BBC",
+            "refresh_interval": 300
+        },
+        "state": "active",
+        "created_at": "2024-10-03 22:15:22"
+    },
+    {
+        "id": 5,
+        "name": "Chat",
+        "description": "A site wide group chat.",
+        "tile_type": "news",
+        "config": {
+            "source": "BBC",
+            "refresh_interval": 300
+        },
+        "state": "active",
+        "created_at": "2024-10-03 22:15:22"
+    }
+]
