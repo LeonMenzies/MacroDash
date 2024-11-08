@@ -39,3 +39,6 @@ jobs:
                   echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
                   chmod 600 key.pem
                   scp -o StrictHostKeyChecking=no -i key.pem -r frontend/build/* $USER@$SERVER_IP:/var/www/html/
+                  ssh -o StrictHostKeyChecking=no -i key.pem $USER@$SERVER_IP << 'EOF'
+                    sudo systemctl restart apache2
+                  EOF
