@@ -30,7 +30,7 @@ export const CustomDrawer = (props: CustomDrawerProps) => {
 
     const menuItems = [
         { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
-        { text: "Tiles", icon: <ListIcon />, path: "/tiles" },
+        { text: "Tile Library", icon: <ListIcon />, path: "/tile-library" },
         { text: "Settings", icon: <SettingsIcon />, path: "/settings" },
     ];
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { styled } from "@mui/material/styles";
 import { TileT } from "types/ApiTypes";
-import TileItem from "pages/tile_store/TileItem";
+import TileItem from "pages/tile_library/TileItem";
 import { Box } from "@mui/material";
 
 interface TileListProps {
@@ -11,7 +11,7 @@ interface TileListProps {
 const TileList: React.FC<TileListProps> = ({ tiles }) => {
     return (
         <TilesList>
-            {tiles.map(tile => (
+            {tiles.map((tile) => (
                 <TileItem key={tile.id} tile={tile} />
             ))}
         </TilesList>
@@ -21,10 +21,10 @@ const TileList: React.FC<TileListProps> = ({ tiles }) => {
 export default TileList;
 
 const TilesList = styled(Box)(({ theme }) => ({
-    display: 'flex',
-    flexDirection: 'column',
+    display: "flex",
+    flexDirection: "column",
     gap: theme.spacing(2),
-    overflowY: 'auto',
+    overflowY: "auto",
     paddingTop: theme.spacing(2),
-    height: '700px',
+    height: "700px",
 }));

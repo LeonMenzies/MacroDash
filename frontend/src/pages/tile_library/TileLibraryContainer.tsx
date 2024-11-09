@@ -3,7 +3,7 @@ import { styled } from "@mui/material/styles";
 import { TileT } from "types/ApiTypes";
 import useFetchApi from "hooks/useFetchApi";
 import { Loading } from "components/display/Loading";
-import TileList from "pages/tile_store/TileList";
+import TileList from "pages/tile_library/TileList";
 import { NavContainer } from "components/nav/NavContainer";
 import {
     Box,
@@ -18,9 +18,9 @@ import { useSetRecoilState } from "recoil";
 import { navAtom } from "recoil/nav";
 
 /* eslint-disable-next-line */
-export interface TileStoreContainerProps {}
+export interface TileLibraryContainerProps {}
 
-export function TileStoreContainer(props: TileStoreContainerProps) {
+export const TileLibraryContainer = (props: TileLibraryContainerProps) => {
     const [sortBy, setSortBy] = useState<string>("title");
     const [sortOrder, setSortOrder] = useState<string>("asc");
     const [ownedFilter, setOwnedFilter] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export function TileStoreContainer(props: TileStoreContainerProps) {
 
     return (
         <NavContainer>
-            <StyledTileStoreContainer>
+            <StyledTileLibraryContainer>
                 <Box sx={{ p: "10px 0 10px 16px" }}>
                     <IconButton
                         aria-label="open drawer"
@@ -96,14 +96,12 @@ export function TileStoreContainer(props: TileStoreContainerProps) {
                 </Filters>
                 <Loading show={fetchTilesListLoading} />
                 <TileList tiles={tilesList} />
-            </StyledTileStoreContainer>
+            </StyledTileLibraryContainer>
         </NavContainer>
     );
-}
+};
 
-export default TileStoreContainer;
-
-const StyledTileStoreContainer = styled(Box)(({ theme }) => ({
+const StyledTileLibraryContainer = styled(Box)(({ theme }) => ({
     color: theme.palette.text.primary,
     margin: "5px 20px 20px 20px",
 }));

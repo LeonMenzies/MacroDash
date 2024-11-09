@@ -13,7 +13,7 @@ import { lightTheme, darkTheme } from "utils/theme";
 
 import LoginContainer from "pages/login/LoginContainer";
 import { DashboardContainer } from "pages/dashboard/DashboardContainer";
-import TileStoreContainer from "pages/tile_store/TileStoreContainer";
+import { TileLibraryContainer } from "pages/tile_library/TileLibraryContainer";
 import SignUpContainer from "pages/signup/SignupContainer";
 import SettingsContainer from "pages/settings/SettingsContainer";
 import { PageNotFound } from "utils/PageNotFound";
@@ -85,10 +85,10 @@ export const App = () => {
                             )}
                         />
                         <Route
-                            path="/tiles"
+                            path="/tile-library"
                             element={renderElement(
                                 user.loggedIn,
-                                TileStoreContainer,
+                                TileLibraryContainer,
                                 "/login"
                             )}
                         />

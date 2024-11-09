@@ -34,24 +34,8 @@ jobs:
               run: |
                   mkdir -p ~/.ssh/
                   echo "${{ secrets.SSH_PRIV_KEY }}" > ~/.ssh/id_rsa
-                  echo "${{ secrets.SSH_PUB_KEY }}" > ~/.ssh/id_rsa.pub
                   chmod 600 ~/.ssh/id_rsa
-                  chmod 600 ~/.ssh/id_rsa.pub
                   ssh-keyscan -H $(echo "${{ secrets.USER_IP }}" | cut -d'@' -f2) >> ~/.ssh/known_hosts
-                  cat ~/.ssh/known_hosts
-
-            - name: Debug USER_IP
-              run: echo "${{ secrets.USER_IP }}"
-
-            - name: List .ssh directory
-              run: ls -la ~/.ssh/
-
-            - name: Print known_hosts
-              run: cat ~/.ssh/known_hosts
-
-            - name: Test SSH Connection
-              run: |
-                  ssh -o StrictHostKeyChecking=no ${{ secrets.USER_IP }} "echo 'SSH connection successful'"
 
             - name: Deploy frontend to Apache
               env:
