@@ -17,6 +17,7 @@ import { navAtom } from "recoil/nav";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ListIcon from "@mui/icons-material/List";
 import SettingsIcon from "@mui/icons-material/Settings";
+import RecentActorsIcon from "@mui/icons-material/RecentActors";
 
 const drawerWidth = 240;
 
@@ -29,8 +30,13 @@ export const CustomDrawer = (props: CustomDrawerProps) => {
     const [open, setOpen] = useRecoilState(navAtom);
 
     const menuItems = [
-        { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
+        { text: "Home", icon: <DashboardIcon />, path: "/" },
         { text: "Tile Library", icon: <ListIcon />, path: "/tile-library" },
+        {
+            text: "Dashboard Library",
+            icon: <RecentActorsIcon />,
+            path: "/dashboard-library",
+        },
         { text: "Settings", icon: <SettingsIcon />, path: "/settings" },
     ];
 

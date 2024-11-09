@@ -11,7 +11,7 @@ import { useTheme } from "@mui/material/styles";
 
 export interface LoginContainerProps {}
 
-export function LoginContainer(props: LoginContainerProps) {
+export const LoginContainer = (props: LoginContainerProps) => {
     const setUserAtom = useSetRecoilState(userAtom);
     const setThemeAtom = useSetRecoilState(themeAtom);
     const navigate = useNavigate();
@@ -68,9 +68,7 @@ export function LoginContainer(props: LoginContainerProps) {
             />
         </StyledLoginContainer>
     );
-}
-
-export default LoginContainer;
+};
 
 const StyledLoginContainer = styled.div`
     background-color: ${({ theme }) => theme.palette.background.default};

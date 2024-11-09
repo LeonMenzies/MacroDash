@@ -4,39 +4,37 @@ import {
     ToggleButton,
     ToggleButtonGroup,
 } from "@mui/material";
+import { MosaicNode, MosaicParent } from "react-mosaic-component";
 import MenuIcon from "@mui/icons-material/Menu";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
 import { styled } from "styled-components";
 import { useSetRecoilState } from "recoil";
 import { navAtom } from "recoil/nav";
-import { DashboardToolbar } from "pages/dashboard/DashboardToolbar";
+import { DashboardToolbar } from "pages/home/HomeToolbar";
 import { useEffect, useState } from "react";
-import { ApiResponse, DashboardT } from "types/ApiTypes";
+import { ApiResponse, DashboardT, TileT } from "types/ApiTypes";
 
-interface DashboardHeaderProps {
-    setSelectedDashboard: (selected: DashboardT) => void;
+interface HomeHeaderProps {
+    fetchOwnedTilesResponse: ApiResponse<TileT[]>;
     fetchDashboardsResponse: ApiResponse<DashboardT[]>;
-    menuItems: {
-        label: string;
-        onClick?: () => void;
-        subMenuItems?: { label: string; onClick: () => void }[];
-    }[];
-    canEdit: boolean;
-    setCanEdit: (canEdit: boolean) => void;
+    setSelectedDashboard: (dashboard: DashboardT) => void;
+    handleTileSelect: (tileId: string) => void;
+    tileIdsInDashboard: string[];
 }
 
-export const DashboardHeader = (props: DashboardHeaderProps) => {
+export const HomeHeader = (props: HomeHeaderProps) => {
     const {
-        menuItems,
-        setSelectedDashboard,
+        fetchOwnedTilesResponse,
         fetchDashboardsResponse,
-        canEdit,
-        setCanEdit,
+        setSelectedDashboard,
+        handleTileSelect,
+        tileIdsInDashboard,
     } = props;
     const setOpen = useSetRecoilState(navAtom);
     const [dashboardList, setDashboardList] = useState<DashboardT[]>([]);
     const [currentDashboardIndex, setCurrentDashboardIndex] = useState(0);
+    const [ownedTiles, setOwnedTiles] = useState<TileT[]>([]);
 
     const handleDashboardChange = (index: number) => {
         const selected = dashboardList[index];
@@ -72,8 +70,18 @@ export const DashboardHeader = (props: DashboardHeaderProps) => {
         }
     }, [fetchDashboardsResponse, setSelectedDashboard]);
 
+    useEffect(() => {
+        if (fetchOwnedTilesResponse.success && fetchOwnedTilesResponse.data) {
+            setOwnedTiles(fetchOwnedTilesResponse.data);
+        }
+    }, [fetchOwnedTilesResponse]);
+
+    const filteredOwnedTiles = ownedTiles.filter(
+        (tile) => !tileIdsInDashboard.includes(tile.tile_id)
+    );
+
     return (
-        <StyledDashboardHeader>
+        <StyledHomeHeader>
             <IconButton
                 color="inherit"
                 aria-label="open drawer"
@@ -104,15 +112,14 @@ export const DashboardHeader = (props: DashboardHeaderProps) => {
                 </ToggleButton>
             </ToggleButtonGroup>
             <DashboardToolbar
-                menuItems={menuItems}
-                canEdit={canEdit}
-                setCanEdit={setCanEdit}
+                filteredOwnedTiles={filteredOwnedTiles}
+                handleTileSelect={handleTileSelect}
             />
-        </StyledDashboardHeader>
+        </StyledHomeHeader>
     );
 };
 
-const StyledDashboardHeader = styled(Box)`
+const StyledHomeHeader = styled(Box)`
     background-color: ${({ theme }) => theme.palette.background.default};
     color: ${({ theme }) => theme.palette.text.primary};
     height: 50px;

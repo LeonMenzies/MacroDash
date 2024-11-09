@@ -3,7 +3,7 @@ import { IconButton, Typography, Box, Paper, Alert } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import styled from "styled-components";
 import { useState, useEffect, useRef } from "react";
-import { DashboardTileMap } from "pages/dashboard/DashboardTileMap";
+import { DashboardTileMap } from "pages/home/DashboardTileMap";
 
 import "react-mosaic-component/react-mosaic-component.css";
 

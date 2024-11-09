@@ -18,7 +18,7 @@ import { TileT } from "types/ApiTypes";
 import usePostApi from "hooks/usePostApi";
 import useFetchApi from "hooks/useFetchApi";
 import { MosaicNode } from "react-mosaic-component";
-import { DashboardTileMap } from "./DashboardTileMap";
+import { DashboardTileMap } from "../home/DashboardTileMap";
 
 interface DashboardAddModalProps {
     open: boolean;

@@ -11,11 +11,12 @@ import {
 } from "styled-components";
 import { lightTheme, darkTheme } from "utils/theme";
 
-import LoginContainer from "pages/login/LoginContainer";
-import { DashboardContainer } from "pages/dashboard/DashboardContainer";
+import { LoginContainer } from "pages/login/LoginContainer";
+import { HomeContainer } from "pages/home/HomeContainer";
 import { TileLibraryContainer } from "pages/tile_library/TileLibraryContainer";
-import SignUpContainer from "pages/signup/SignupContainer";
-import SettingsContainer from "pages/settings/SettingsContainer";
+import { DashboardLibraryContainer } from "pages/dashboard_library/DashboardLibraryContainer";
+import { SignUpContainer } from "pages/signup/SignupContainer";
+import { SettingsContainer } from "pages/settings/SettingsContainer";
 import { PageNotFound } from "utils/PageNotFound";
 
 const GlobalStyle = createGlobalStyle`
@@ -72,7 +73,7 @@ export const App = () => {
                             index
                             element={renderElement(
                                 user.loggedIn,
-                                DashboardContainer,
+                                HomeContainer,
                                 "/login"
                             )}
                         />
@@ -89,6 +90,14 @@ export const App = () => {
                             element={renderElement(
                                 user.loggedIn,
                                 TileLibraryContainer,
+                                "/login"
+                            )}
+                        />
+                        <Route
+                            path="/dashboard-library"
+                            element={renderElement(
+                                user.loggedIn,
+                                DashboardLibraryContainer,
                                 "/login"
                             )}
                         />

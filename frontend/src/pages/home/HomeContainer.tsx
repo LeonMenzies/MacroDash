@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import {
     Mosaic,
     MosaicNode,
-    getLeaves,
-    createBalancedTreeFromLeaves,
     getPathToCorner,
     getNodeAtPath,
     getOtherDirection,
@@ -15,25 +13,23 @@ import {
 import styled from "styled-components";
 import useFetchApi from "hooks/useFetchApi";
 import usePostApi from "hooks/usePostApi";
-import { DashboardTileMap } from "pages/dashboard/DashboardTileMap";
+import { DashboardTileMap } from "pages/home/DashboardTileMap";
 import { DashboardT, TileT } from "types/ApiTypes";
 import dropRight from "lodash/dropRight";
-import { DashboardTile } from "pages/dashboard/DashboardTile";
+import { DashboardTile } from "components/tiles/tile/DashboardTile";
 import { NavContainer } from "components/nav/NavContainer";
-import { DashboardHeader } from "pages/dashboard/DashboardHeader";
-import { DashboardAddModal } from "pages/dashboard/DashboardAddModal";
+import { HomeHeader } from "pages/home/HomeHeader";
 import { Loading } from "components/display/Loading";
 
 import "react-mosaic-component/react-mosaic-component.css";
 
 /* eslint-disable-next-line */
-export interface DashboardContainerProps {}
+export interface HomeContainerProps {}
 
-export const DashboardContainer = (props: DashboardContainerProps) => {
+export const HomeContainer = (props: HomeContainerProps) => {
     const [mosaicValue, setMosaicValue] = useState<MosaicNode<string> | null>(
         null
     );
-    const [ownedTiles, setOwnedTiles] = useState<TileT[]>([]);
     const [selectedDashboard, setSelectedDashboard] =
         useState<DashboardT | null>(null);
     const [fetchOwnedTilesResponse, , fetchOwnedTiles] =
@@ -42,24 +38,12 @@ export const DashboardContainer = (props: DashboardContainerProps) => {
         usePostApi(`/dashboard/update`);
     const [fetchDashboardsResponse, fetchDashboardsLoading, fetchDashboards] =
         useFetchApi<DashboardT[]>(`/dashboard/list`);
-    const [addModalOpen, setAddModalOpen] = useState(false);
-    const [canEdit, setCanEdit] = useState(false);
+    const [canEdit, setCanEdit] = useState(true);
 
     useEffect(() => {
         fetchOwnedTiles();
         fetchDashboards();
     }, [fetchOwnedTiles, fetchDashboards]);
-
-    useEffect(() => {
-        if (fetchOwnedTilesResponse.success && fetchOwnedTilesResponse.data) {
-            setOwnedTiles(fetchOwnedTilesResponse.data);
-        }
-    }, [fetchOwnedTilesResponse]);
-
-    const autoArrange = () => {
-        const leaves = getLeaves(mosaicValue);
-        setMosaicValue(createBalancedTreeFromLeaves(leaves));
-    };
 
     useEffect(() => {
         if (selectedDashboard) {
@@ -171,41 +155,20 @@ export const DashboardContainer = (props: DashboardContainerProps) => {
     };
 
     const tileIdsInDashboard = getTileIdsInDashboard(mosaicValue);
-    const filteredOwnedTiles = ownedTiles.filter(
-        (tile) => !tileIdsInDashboard.includes(tile.tile_id)
-    );
-
-    const menuItems = [
-        {
-            label: "Add tile to Top Right",
-            onClick: () => {},
-            subMenuItems: filteredOwnedTiles.map((tile) => ({
-                label: tile.title,
-                onClick: () => handleTileSelect(tile.tile_id),
-            })),
-        },
-        { label: "Add New Dashboard", onClick: () => setAddModalOpen(true) },
-        { label: "Edit Dashboard", onClick: () => setCanEdit(!canEdit) },
-        { label: "Auto Arrange", onClick: autoArrange },
-    ];
 
     return fetchDashboardsLoading ? (
         <Loading show={fetchDashboardsLoading} />
     ) : (
         <NavContainer>
             <StyledDashboardContainer>
-                <DashboardHeader
-                    menuItems={menuItems}
-                    setSelectedDashboard={setSelectedDashboard}
+                <HomeHeader
+                    fetchOwnedTilesResponse={fetchOwnedTilesResponse}
                     fetchDashboardsResponse={fetchDashboardsResponse}
-                    canEdit={canEdit}
-                    setCanEdit={setCanEdit}
+                    setSelectedDashboard={setSelectedDashboard}
+                    handleTileSelect={handleTileSelect}
+                    tileIdsInDashboard={tileIdsInDashboard}
                 />
-                <DashboardAddModal
-                    open={addModalOpen}
-                    onClose={() => setAddModalOpen(false)}
-                    ownedTiles={ownedTiles}
-                />
+
                 <Mosaic<string>
                     onRelease={handleUpdatedDashboard}
                     renderTile={(id, path) => {
