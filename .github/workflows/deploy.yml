@@ -49,6 +49,10 @@ jobs:
             - name: Print known_hosts
               run: cat ~/.ssh/known_hosts
 
+            - name: Test SSH Connection
+              run: |
+                  ssh -o StrictHostKeyChecking=no ${{ secrets.USER_IP }} "echo 'SSH connection successful'"
+
             - name: Deploy frontend to Apache
               env:
                   USER_IP: ${{ secrets.USER_IP }}
