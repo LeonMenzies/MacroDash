@@ -28,8 +28,7 @@ export const DashboardLibraryContainer = (
     props: DashboardLibraryContainerProps
 ) => {
     const [dashboards, setDashboards] = useState<DashboardT[]>([]);
-    const [selectedDashboard, setSelectedDashboard] =
-        useState<DashboardT | null>(null);
+    const [selectedDashboard] = useState<DashboardT | null>(null);
     const [fetchDashboardsResponse, fetchDashboardsLoading, fetchDashboards] =
         useFetchApi<DashboardT[]>(`/dashboard/list`);
     const [addModalOpen, setAddModalOpen] = useState(false);

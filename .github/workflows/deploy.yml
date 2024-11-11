@@ -26,6 +26,7 @@ jobs:
             - name: Build frontend
               env:
                   NODE_OPTIONS: --max_old_space_size=4096
+                  REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
               run: |
                   cd frontend
                   npm run build
@@ -37,11 +38,24 @@ jobs:
                   chmod 600 ~/.ssh/id_rsa
                   ssh-keyscan -H $(echo "${{ secrets.USER_IP }}" | cut -d'@' -f2) >> ~/.ssh/known_hosts
 
-            - name: Deploy frontend to Apache
+            - name: Deploy frontend to Nginx
               env:
                   USER_IP: ${{ secrets.USER_IP }}
               run: |
                   scp -o StrictHostKeyChecking=no -r frontend/build/* $USER_IP:/var/www/html/
                   ssh -o StrictHostKeyChecking=no $USER_IP << 'EOF'
-                    echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart apache2
+                    echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart nginx
+                  EOF
+
+            - name: Deploy backend to Gunicorn
+              env:
+                  USER_IP: ${{ secrets.USER_IP }}
+              run: |
+                  ssh -o StrictHostKeyChecking=no $USER_IP << 'EOF'
+                    cd /var/www/MacroDash/backend
+                    git pull origin master
+                    source venv/bin/activate
+                    pip install -r requirements.txt
+                    sudo systemctl daemon-reload
+                    sudo systemctl restart gunicorn
                   EOF

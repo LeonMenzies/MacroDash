@@ -38,7 +38,7 @@ export const HomeContainer = (props: HomeContainerProps) => {
         usePostApi(`/dashboard/update`);
     const [fetchDashboardsResponse, fetchDashboardsLoading, fetchDashboards] =
         useFetchApi<DashboardT[]>(`/dashboard/list`);
-    const [canEdit, setCanEdit] = useState(true);
+    const [canEdit] = useState(true);
 
     useEffect(() => {
         fetchOwnedTiles();
