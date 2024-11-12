@@ -6,7 +6,7 @@ on:
             - master
 
 jobs:
-    build:
+    build-frontend:
         runs-on: ubuntu-latest
 
         steps:
@@ -38,17 +38,17 @@ jobs:
                   chmod 600 ~/.ssh/id_rsa
                   ssh-keyscan -H $(echo "${{ secrets.USER_IP }}" | cut -d'@' -f2) >> ~/.ssh/known_hosts
 
-            - name: Deploy frontend and backend
+            - name: Deploy frontend
               env:
                   USER_IP: ${{ secrets.USER_IP }}
               run: |
-                  echo "Starting deployment"
+                  echo "Starting frontend deployment"
                   scp -o StrictHostKeyChecking=no -r frontend/build/* $USER_IP:/var/www/html/
                   if [ $? -ne 0 ]; then
                     echo "Error during scp"
                     exit 1
                   fi
-                  echo "Files copied to server"
+                  echo "Frontend files copied to server"
                   ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 $USER_IP << 'EOF'
                     set -x
                     echo "Restarting nginx"
@@ -58,7 +58,29 @@ jobs:
                       exit 1
                     fi
                     echo "Nginx restarted successfully"
+                  EOF
 
+    build-backend:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+
+            - name: Setup SSH
+              run: |
+                  mkdir -p ~/.ssh/
+                  echo "${{ secrets.SSH_PRIV_KEY }}" > ~/.ssh/id_rsa
+                  chmod 600 ~/.ssh/id_rsa
+                  ssh-keyscan -H $(echo "${{ secrets.USER_IP }}" | cut -d'@' -f2) >> ~/.ssh/known_hosts
+
+            - name: Deploy backend
+              env:
+                  USER_IP: ${{ secrets.USER_IP }}
+              run: |
+                  echo "Starting backend deployment"
+                  ssh -tt -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 $USER_IP << 'EOF'
+                    set -x
                     echo "Navigating to backend directory"
                     cd /var/www/MacroDash/backend
                     if [ $? -ne 0 ]; then
