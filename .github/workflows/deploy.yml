@@ -38,20 +38,13 @@ jobs:
                   chmod 600 ~/.ssh/id_rsa
                   ssh-keyscan -H $(echo "${{ secrets.USER_IP }}" | cut -d'@' -f2) >> ~/.ssh/known_hosts
 
-            - name: Deploy frontend to Nginx
+            - name: Deploy frontend and backend
               env:
                   USER_IP: ${{ secrets.USER_IP }}
               run: |
                   scp -o StrictHostKeyChecking=no -r frontend/build/* $USER_IP:/var/www/html/
                   ssh -tt -o StrictHostKeyChecking=no $USER_IP << 'EOF'
                     sudo systemctl restart nginx
-                  EOF
-
-            - name: Deploy backend to Gunicorn
-              env:
-                  USER_IP: ${{ secrets.USER_IP }}
-              run: |
-                  ssh -tt -o StrictHostKeyChecking=no $USER_IP << 'EOF'
                     cd /var/www/MacroDash/backend
                     git pull origin master
                     source venv/bin/activate
