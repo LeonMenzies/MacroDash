@@ -41,17 +41,15 @@ jobs:
             - name: Deploy frontend to Nginx
               env:
                   USER_IP: ${{ secrets.USER_IP }}
-                  SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
               run: |
                   scp -o StrictHostKeyChecking=no -r frontend/build/* $USER_IP:/var/www/html/
                   ssh -tt -o StrictHostKeyChecking=no $USER_IP << 'EOF'
-                    echo "${SUDO_PASSWORD}" | sudo -S systemctl restart nginx
+                    sudo systemctl restart nginx
                   EOF
 
             - name: Deploy backend to Gunicorn
               env:
                   USER_IP: ${{ secrets.USER_IP }}
-                  SUDO_PASSWORD: ${{ secrets.SUDO_PASSWORD }}
               run: |
                   ssh -tt -o StrictHostKeyChecking=no $USER_IP << 'EOF'
                     cd /var/www/MacroDash/backend
@@ -59,5 +57,5 @@ jobs:
                     source venv/bin/activate
                     pip install -r requirements.txt
                     sudo systemctl daemon-reload
-                    echo "${SUDO_PASSWORD}" | sudo -S systemctl restart gunicorn
+                    sudo systemctl restart gunicorn
                   EOF
