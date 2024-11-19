@@ -71,6 +71,15 @@ def get_user_tiles():
         user_tiles = UserTiles.query.filter_by(user_id=user_id).all()
         tile_ids = [user_tile.tile_id for user_tile in user_tiles]
         
+        # If the user has no tiles, add the first three tiles from the database
+        if not user_tiles:
+            first_three_tiles = Tiles.query.limit(3).all()
+            for tile in first_three_tiles:
+                user_tile = UserTiles(user_id=user_id, tile_id=tile.id)
+                db.session.add(user_tile)
+                db.session.commit()
+                tile_ids.append(tile.id)
+        
         # Query Tiles to get the details of the tiles
         tiles = Tiles.query.filter(Tiles.id.in_(tile_ids)).all()
         

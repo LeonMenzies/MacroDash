@@ -21,8 +21,8 @@ export const LoginContainer = (props: LoginContainerProps) => {
     >("/login");
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [user, setUser] = useState<LoginRequestT>({
-        email: "leon.menzies@gmail.com",
-        password: "Testing123!",
+        email: "",
+        password: "",
     });
     const theme = useTheme();
 

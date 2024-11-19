@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.dashboard import Dashboard
+from models.tiles import Tiles
 from helpers.database import db
 from helpers.api_exception import ApiException
 from helpers.api_helpers import APIHelpers
@@ -72,6 +73,27 @@ def list_dashboards():
             
         dashboards = Dashboard.query.filter_by(user_id=user_id).all()
 
+        if not dashboards:
+            # Fetch the first three tiles from the database
+            first_three_tiles = Tiles.query.limit(3).all()
+  
+            # Create the default config using the first three tiles
+            config = {
+                "first": first_three_tiles[0].tile_id,
+                "second": {
+                    "first": first_three_tiles[1].tile_id,
+                    "second": first_three_tiles[2].tile_id,
+                    "direction": "column"
+                },
+                "direction": "row"
+            }
+
+            # Create a new dashboard if none are found
+            new_dashboard = Dashboard(user_id=user_id, name="First Dashboard", config=config)
+            db.session.add(new_dashboard)
+            db.session.commit()
+            dashboards = [new_dashboard]
+
         response = make_response(jsonify({
             'success': True,
             'errorMessage': '',
@@ -80,4 +102,3 @@ def list_dashboards():
         return response
     except ApiException as e:
         raise e
-

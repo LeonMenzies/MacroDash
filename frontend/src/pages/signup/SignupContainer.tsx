@@ -21,10 +21,10 @@ export const SignUpContainer = (props: SignUpContainerProps) => {
     >("/signup");
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [user, setUser] = useState<SignUpRequestT>({
-        firstName: "Leon",
-        lastName: "Menzies",
-        email: "leon.menzies@mm.com",
-        password: "Testing123!",
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
     });
     const theme = useTheme();
 

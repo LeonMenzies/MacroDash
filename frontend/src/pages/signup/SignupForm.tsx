@@ -1,14 +1,7 @@
 import React, { useState } from "react";
 import { SignUpRequestT } from "types/ApiTypes";
-import { Link } from "react-router-dom";
-import {
-    Container,
-    Box,
-    TextField,
-    Button,
-    Typography,
-    Alert,
-} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { Container, Box, TextField, Button, Alert } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 interface SignUpFormProps {
@@ -30,6 +23,11 @@ export function SignUpForm({
 }: SignUpFormProps) {
     const [confirmPassword, setConfirmPassword] = useState<string>("");
     const theme = useTheme();
+    const navigate = useNavigate();
+
+    const handleBack = () => {
+        navigate("/settings");
+    };
 
     return (
         <Container maxWidth="xs">
@@ -115,37 +113,50 @@ export function SignUpForm({
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         onBlur={onBlur}
                     />
-
-                    <Button
-                        variant="outlined"
-                        onClick={handleSignUp}
-                        disabled={loading}
-                        fullWidth
-                        sx={{
-                            color: theme.palette.primary.main,
-                            borderColor: theme.palette.primary.main,
-                            "&:hover": {
-                                backgroundColor: theme.palette.action.hover,
-                                borderColor: theme.palette.primary.main,
-                            },
-                        }}
+                    <Box
+                        display="flex"
+                        flexDirection="row"
+                        justifyContent="center"
+                        alignItems="center"
+                        gap={2}
+                        color={theme.palette.text.primary}
                     >
-                        Sign Up
-                    </Button>
-
+                        <Button
+                            variant="outlined"
+                            onClick={handleBack}
+                            disabled={loading}
+                            fullWidth
+                            sx={{
+                                color: theme.palette.primary.main,
+                                borderColor: theme.palette.primary.main,
+                                "&:hover": {
+                                    backgroundColor: theme.palette.action.hover,
+                                    borderColor: theme.palette.primary.main,
+                                },
+                            }}
+                        >
+                            Back
+                        </Button>
+                        <Button
+                            variant="outlined"
+                            onClick={handleSignUp}
+                            disabled={loading}
+                            fullWidth
+                            sx={{
+                                color: theme.palette.primary.main,
+                                borderColor: theme.palette.primary.main,
+                                "&:hover": {
+                                    backgroundColor: theme.palette.action.hover,
+                                    borderColor: theme.palette.primary.main,
+                                },
+                            }}
+                        >
+                            Sign Up
+                        </Button>
+                    </Box>
                     {errorMessage && (
                         <Alert severity="error">{errorMessage}</Alert>
                     )}
-
-                    <Typography align="center">
-                        Already have an account?{" "}
-                        <Link
-                            to="/login"
-                            style={{ color: theme.palette.primary.main }}
-                        >
-                            Login
-                        </Link>
-                    </Typography>
                 </Box>
             </Box>
         </Container>

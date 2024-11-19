@@ -1,14 +1,6 @@
 import React from "react";
 import { LoginRequestT } from "types/ApiTypes";
-import { Link } from "react-router-dom";
-import {
-    Container,
-    Box,
-    TextField,
-    Button,
-    Typography,
-    Alert,
-} from "@mui/material";
+import { Container, Box, TextField, Button, Alert } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 interface LoginFormProps {
@@ -98,16 +90,6 @@ export function LoginForm({
                     {errorMessage && (
                         <Alert severity="error">{errorMessage}</Alert>
                     )}
-
-                    <Typography align="center">
-                        Not a Member yet?{" "}
-                        <Link
-                            to="/signup"
-                            style={{ color: theme.palette.primary.main }}
-                        >
-                            Sign Up
-                        </Link>
-                    </Typography>
                 </Box>
             </Box>
         </Container>

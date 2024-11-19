@@ -39,6 +39,10 @@ export const SettingsContainer = (props: SettingsContainerProps) => {
         setIsDarkMode(!isDarkMode);
     };
 
+    const handleAddUser = () => {
+        navigate("/signup");
+    };
+
     return (
         <StyledSettingsContainer>
             <Box>
@@ -65,12 +69,20 @@ export const SettingsContainer = (props: SettingsContainerProps) => {
                                 ? "Switch to Light Mode"
                                 : "Switch to Dark Mode"}
                         </Button>
+
                         <PlaceholderSetting>Change Password</PlaceholderSetting>
                         <PlaceholderSetting>Update Email</PlaceholderSetting>
                     </Section>
                     <Section>
                         <h2>Account Settings</h2>
                         <p>Manage your account settings and preferences.</p>
+                        <Button
+                            onClick={handleAddUser}
+                            variant="contained"
+                            color="primary"
+                        >
+                            Add User
+                        </Button>
                         <PlaceholderSetting>
                             Privacy Settings
                         </PlaceholderSetting>
@@ -105,7 +117,7 @@ const StyledSettingsContainer = styled.div`
     display: flex;
     flex-direction: column;
     background-color: ${({ theme }) => theme.palette.background.default};
-    min-height: 100vh;
+    height: 100vh;
 `;
 
 const Content = styled.div`
@@ -113,6 +125,8 @@ const Content = styled.div`
     flex-direction: column;
     gap: 20px;
     margin: 0 20px 20px 20px;
+    overflow-y: auto;
+    flex-grow: 1;
 `;
 
 const Section = styled.section`
