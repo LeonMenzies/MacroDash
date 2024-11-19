@@ -11,7 +11,7 @@ import { ChatMessageT } from "types/ApiTypes";
 export interface ChatContainerProps {}
 
 export const ChatContainer = (props: ChatContainerProps) => {
-    const socket = useRef(io(`${process.env.REACT_APP_URL_BASE}`)); // Connect to backend on port 4001
+    const socket = useRef(io(`${process.env.REACT_APP_SOCKET_URL}`));
 
     const [messages, setMessages] = useState<ChatMessageT[]>([]);
     const [newMessage, setNewMessage] = useState<string>("");
@@ -36,7 +36,7 @@ export const ChatContainer = (props: ChatContainerProps) => {
             setIsConnected(false);
         });
 
-        currentSocket.on("message", (msg: any) => {
+        currentSocket.on("message", (msg: ChatMessageT) => {
             setMessages((prevMessages) => [...prevMessages, msg]);
         });
 

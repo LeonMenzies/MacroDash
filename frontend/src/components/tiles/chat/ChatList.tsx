@@ -31,47 +31,54 @@ const ChatList: React.FC<ChatListProps> = ({ messages, currentUserID }) => {
             }[];
         } = {};
         let count = 0;
-        messages.forEach((msg) => {
-            const timestamp = new Date(msg.timestamp).toLocaleTimeString();
-            if (!groupedMessages[msg.username + count.toString()]) {
-                groupedMessages[msg.username + count.toString()] = [
-                    {
-                        user_id: msg.user_id,
-                        timestamp: msg.timestamp,
-                        messages: [msg],
-                    },
-                ];
-            } else {
-                const lastGroup =
-                    groupedMessages[msg.username + count.toString()][
-                        groupedMessages[msg.username + count.toString()]
-                            .length - 1
-                    ];
-                const lastMessageTime = new Date(
-                    lastGroup.messages[lastGroup.messages.length - 1].timestamp
-                );
-                const currentMessageTime = new Date(msg.timestamp);
-                const timeDiff =
-                    (currentMessageTime.getTime() - lastMessageTime.getTime()) /
-                    1000 /
-                    60;
 
-                if (timeDiff <= 1) {
-                    lastGroup.messages.push(msg);
+        // Process messages in reverse order
+        messages
+            .slice()
+            .reverse()
+            .forEach((msg) => {
+                const timestamp = new Date(msg.timestamp).toLocaleTimeString();
+                if (!groupedMessages[msg.username + count.toString()]) {
+                    groupedMessages[msg.username + count.toString()] = [
+                        {
+                            user_id: msg.user_id,
+                            timestamp: msg.timestamp,
+                            messages: [msg],
+                        },
+                    ];
                 } else {
-                    groupedMessages[msg.username + count.toString()].push({
-                        user_id: msg.user_id,
-                        timestamp,
-                        messages: [msg],
-                    });
+                    const lastGroup =
+                        groupedMessages[msg.username + count.toString()][
+                            groupedMessages[msg.username + count.toString()]
+                                .length - 1
+                        ];
+                    const lastMessageTime = new Date(
+                        lastGroup.messages[
+                            lastGroup.messages.length - 1
+                        ].timestamp
+                    );
+                    const currentMessageTime = new Date(msg.timestamp);
+                    const timeDiff =
+                        (currentMessageTime.getTime() -
+                            lastMessageTime.getTime()) /
+                        1000 /
+                        60;
+
+                    if (timeDiff <= 1) {
+                        lastGroup.messages.push(msg);
+                    } else {
+                        groupedMessages[msg.username + count.toString()].push({
+                            user_id: msg.user_id,
+                            timestamp,
+                            messages: [msg],
+                        });
+                    }
+                    count++;
                 }
-                count++;
-            }
-        });
+            });
 
         return groupedMessages;
     };
-
     const groupedMessages = groupMessagesByUserAndTime(messages);
 
     useEffect(() => {

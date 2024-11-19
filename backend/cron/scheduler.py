@@ -17,7 +17,6 @@ def create_scheduler(app: Flask, db):
     scheduler.start()
 
     # Add jobs from the jobs module
-    scheduler.add_job(jobs.test_job, CronTrigger(hour=0, minute=0), id='test_job', replace_existing=True)
     scheduler.add_job(jobs.fred_release_calander_job, CronTrigger(hour=0, minute=0), id='fred_release_calander_job', replace_existing=True)
     
     return scheduler
