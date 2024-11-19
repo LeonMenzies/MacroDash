@@ -41,7 +41,7 @@ with app.app_context():
 register_controllers(app)
 
 # Initialize sockets
-socketio = SocketIO(app, cors_allowed_origins="http://localhost:4000")
+socketio = SocketIO(app, cors_allowed_origins=os.getenv('CORS_ORIGIN_WHITELIST'))
 
 @socketio.on('message')
 def handle_message(msg):

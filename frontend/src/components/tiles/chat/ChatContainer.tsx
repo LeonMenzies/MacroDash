@@ -11,7 +11,7 @@ import { ChatMessageT } from "types/ApiTypes";
 export interface ChatContainerProps {}
 
 export const ChatContainer = (props: ChatContainerProps) => {
-    const socket = useRef(io("http://localhost:4001")); // Connect to backend on port 4001
+    const socket = useRef(io(`${process.env.REACT_APP_URL_BASE}`)); // Connect to backend on port 4001
 
     const [messages, setMessages] = useState<ChatMessageT[]>([]);
     const [newMessage, setNewMessage] = useState<string>("");
