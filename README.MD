@@ -1,59 +1,36 @@
-### Backend
+## Deployment
 
-# Setup Instructions
+### Frontend Deployment
 
-## Backend
+1. **Build the frontend**:
 
-### Activate virtual environment
-```sh
-source venv/bin/activate
-```
+    ```sh
+    cd frontend
+    npm install
+    npm run build
+    ```
 
-### Install dependencies
-```sh
-pip install -r requirements.txt
-```
+2. **Copy build files to the server and restart the web server**:
+    ```sh
+    scp -r build/* leon@172.234.196.74:/var/www/html/
+    ssh leon@172.234.196.74
+    sudo systemctl restart nginx
+    ```
 
-### Verify installation
-```sh
-pip list
-```
+### Backend Deployment
 
-### Run the backend server
-```sh
-python manage.py runserver
-```
+1. **SSH into the server, navigate to the backend directory, and pull the latest code**:
 
-### Deactivate virtual environment
-```sh
-deactivate
-```
+    ```sh
+    ssh leon@172.234.196.74
+    cd /var/www/MacroDash/backend
+    git pull origin master
+    ```
 
-## Frontend
-
-### Navigate to the frontend directory
-```sh
-cd frontend
-```
-
-### Install dependencies
-```sh
-npm install
-```
-
-### Start the frontend server
-```sh
-npm start
-```
-
-### Build the frontend for production (optional)
-```sh
-npm run build
-```
-
-## Additional Information
-
-- Ensure you have Python, Node.js, and npm installed on your machine.
-- For backend, you might need to set environment variables. You can create a `.env` file in the backend directory with the necessary variables.
-- For frontend, you can customize the npm scripts in the `package.json` file as needed.
-
+2. **Activate virtual environment, install dependencies, reload systemd daemon, and restart Gunicorn**:
+    ```sh
+    source venv/bin/activate
+    pip install -r requirements.txt
+    sudo systemctl daemon-reload
+    sudo systemctl restart gunicorn
+    ```

@@ -8,7 +8,7 @@ interface TileListProps {
     tiles: TileT[];
 }
 
-const TileList: React.FC<TileListProps> = ({ tiles }) => {
+export const TileList: React.FC<TileListProps> = ({ tiles }) => {
     return (
         <TilesList>
             {tiles.map((tile) => (
@@ -17,8 +17,6 @@ const TileList: React.FC<TileListProps> = ({ tiles }) => {
         </TilesList>
     );
 };
-
-export default TileList;
 
 const TilesList = styled(Box)(({ theme }) => ({
     display: "flex",

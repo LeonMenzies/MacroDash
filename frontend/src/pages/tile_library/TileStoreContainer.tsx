@@ -18,9 +18,9 @@ import { useSetRecoilState } from "recoil";
 import { navAtom } from "recoil/nav";
 
 /* eslint-disable-next-line */
-export interface TileLibraryContainerProps {}
+export interface TileStoreContainerProps {}
 
-export const TileLibraryContainer = (props: TileLibraryContainerProps) => {
+export function TileStoreContainer(props: TileStoreContainerProps) {
     const [sortBy, setSortBy] = useState<string>("title");
     const [sortOrder, setSortOrder] = useState<string>("asc");
     const [ownedFilter, setOwnedFilter] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export const TileLibraryContainer = (props: TileLibraryContainerProps) => {
 
     return (
         <NavContainer>
-            <StyledTileLibraryContainer>
+            <StyledTileStoreContainer>
                 <Box sx={{ p: "10px 0 10px 16px" }}>
                     <IconButton
                         aria-label="open drawer"
@@ -96,12 +96,14 @@ export const TileLibraryContainer = (props: TileLibraryContainerProps) => {
                 </Filters>
                 <Loading show={fetchTilesListLoading} />
                 <TileList tiles={tilesList} />
-            </StyledTileLibraryContainer>
+            </StyledTileStoreContainer>
         </NavContainer>
     );
-};
+}
 
-const StyledTileLibraryContainer = styled(Box)(({ theme }) => ({
+export default TileStoreContainer;
+
+const StyledTileStoreContainer = styled(Box)(({ theme }) => ({
     color: theme.palette.text.primary,
     margin: "5px 20px 20px 20px",
 }));

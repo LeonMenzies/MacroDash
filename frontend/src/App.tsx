@@ -67,7 +67,14 @@ export const App = () => {
                 >
                     <Routes>
                         <Route path="login" element={<LoginContainer />} />
-                        <Route path="signup" element={<SignUpContainer />} />
+                        <Route
+                            path="signup"
+                            element={renderElement(
+                                user.loggedIn,
+                                SignUpContainer,
+                                "/login"
+                            )}
+                        />
                         <Route
                             path="/"
                             index
