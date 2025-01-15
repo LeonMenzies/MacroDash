@@ -5,16 +5,16 @@ FRONTEND_DIR="frontend"
 BACKEND_DIR="backend"
 SERVER_USER="leon"
 SERVER_IP="172.234.196.74"
-SERVER_WEB_DIR="/var/www/html"
+SERVER_WEB_DIR="/var/www/html/macro-dash"
 SERVER_BACKEND_DIR="/var/www/MacroDash/backend"
 NGINX_SERVICE="nginx"
-GUNICORN_SERVICE="gunicorn"
+GUNICORN_SERVICE="gunicorn-macro-dash"
 
 # Build the frontend
 echo "Building the frontend..."
 cd $FRONTEND_DIR
 npm install
-npm run build
+npm run build -- --env.production
 cd ..
 
 # Copy build files to the server

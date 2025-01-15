@@ -7,12 +7,12 @@
     ```sh
     cd frontend
     npm install
-    npm run build
+    npm run build -- --env.production
     ```
 
 2. **Copy build files to the server and restart the web server**:
     ```sh
-    scp -r build/* leon@172.234.196.74:/var/www/html/
+    scp -r build/* leon@172.234.196.74:/var/www/html/macro-dash
     ssh leon@172.234.196.74
     sudo systemctl restart nginx
     ```
@@ -32,5 +32,5 @@
     source venv/bin/activate
     pip install -r requirements.txt
     sudo systemctl daemon-reload
-    sudo systemctl restart gunicorn
+    sudo systemctl restart gunicorn-macro-dash
     ```
