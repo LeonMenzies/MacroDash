@@ -5,6 +5,7 @@ const cors = require('cors');
 const macroRoutes = require('./routes/macro');
 const execSummaryRoutes = require('./routes/execSummary');
 const catalystRoutes = require('./routes/catalyst');
+const ideasRoutes = require('./routes/ideas');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use('/api/macro', macroRoutes);
 app.use('/api/exec-summary', execSummaryRoutes);
 app.use('/api/catalyst', catalystRoutes);
+app.use('/api/ideas', ideasRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

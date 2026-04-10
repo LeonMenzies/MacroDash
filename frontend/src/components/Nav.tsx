@@ -4,6 +4,7 @@ const links = [
   { to: '/', label: 'MACRO' },
   { to: '/exec-summary', label: 'EXEC SUMMARY' },
   { to: '/catalyst-brain', label: 'CATALYST BRAIN' },
+  { to: '/ideas', label: 'IDEAS' },
 ];
 
 export default function Nav() {

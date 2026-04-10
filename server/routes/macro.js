@@ -1,5 +1,6 @@
 const express = require('express');
 const fetch = require('node-fetch');
+const Anthropic = require('@anthropic-ai/sdk');
 const router = express.Router();
 
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
@@ -73,6 +74,29 @@ router.get('/yield-curve', async (req, res) => {
     );
 
     res.json(results);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Macro regime summariser
+router.post('/regime', async (req, res) => {
+  const { text } = req.body;
+  if (!text) return res.status(400).json({ error: 'text is required' });
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  try {
+    const client = new Anthropic();
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      messages: [{
+        role: 'user',
+        content: `You are a macro strategist. Summarise the following text into a concise regime assessment for an L/S equity options desk with a 1-4 month horizon. Cover: current regime label, key risks, and what it means for equity volatility and positioning. Be direct and dense — no filler.\n\n${text}`,
+      }],
+    });
+    const summary = message.content.find((b) => b.type === 'text')?.text || '';
+    res.json({ summary });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
