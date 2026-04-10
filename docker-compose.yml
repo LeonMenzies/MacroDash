@@ -7,6 +7,8 @@ services:
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       FRED_API_KEY: ${FRED_API_KEY}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4000}
       PORT: 4001
     ports:
