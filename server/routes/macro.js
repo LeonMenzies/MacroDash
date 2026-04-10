@@ -5,10 +5,16 @@ const router = express.Router();
 
 const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
 
-async function fetchSeries(seriesId, limit = 1) {
+async function fetchSeries(seriesId, limit = 1, attempt = 0) {
   const url = `${FRED_BASE}?series_id=${seriesId}&api_key=${process.env.FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`FRED error for ${seriesId}: ${res.status}`);
+  if (!res.ok) {
+    if (res.status >= 500 && attempt < 2) {
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      return fetchSeries(seriesId, limit, attempt + 1);
+    }
+    throw new Error(`FRED error for ${seriesId}: ${res.status}`);
+  }
   const data = await res.json();
   return data.observations;
 }
@@ -25,7 +31,7 @@ router.get('/indicators', async (req, res) => {
       FEDFUNDS: 'Fed Funds Rate',
     };
 
-    const results = await Promise.all(
+    const settled = await Promise.allSettled(
       Object.entries(series).map(async ([id, label]) => {
         const obs = await fetchSeries(id, 2);
         const latest = obs[0];
@@ -41,6 +47,12 @@ router.get('/indicators', async (req, res) => {
         };
       })
     );
+
+    const results = settled.map((r, i) => {
+      if (r.status === 'fulfilled') return r.value;
+      const [id, label] = Object.entries(series)[i];
+      return { id, label, value: null, date: null, change: null, error: r.reason.message };
+    });
 
     res.json(results);
   } catch (err) {
@@ -66,12 +78,17 @@ router.get('/yield-curve', async (req, res) => {
       { id: 'DGS30', label: '30Y' },
     ];
 
-    const results = await Promise.all(
+    const settled = await Promise.allSettled(
       maturities.map(async ({ id, label }) => {
         const obs = await fetchSeries(id, 1);
         return { label, yield: parseFloat(obs[0].value), date: obs[0].date };
       })
     );
+
+    const results = settled
+      .filter((r) => r.status === 'fulfilled')
+      .map((r) => r.value)
+      .filter((p) => !isNaN(p.yield));
 
     res.json(results);
   } catch (err) {
