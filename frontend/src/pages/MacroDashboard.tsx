@@ -87,7 +87,7 @@ export default function MacroDashboard() {
       {error && <div style={{ color: 'var(--red)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{error}</div>}
 
       {indicators.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+        <div className="grid-3" style={{ marginBottom: 24 }}>
           {indicators.map((ind) => (
             <div
               key={ind.id}

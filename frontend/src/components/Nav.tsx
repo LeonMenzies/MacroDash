@@ -12,19 +12,24 @@ export default function Nav() {
     <nav style={{
       display: 'flex',
       alignItems: 'center',
-      gap: 0,
       background: 'var(--surface)',
       borderBottom: '1px solid var(--border)',
-      padding: '0 32px',
+      padding: '0 16px',
       height: 44,
+      overflowX: 'auto',
+      overflowY: 'hidden',
+      flexShrink: 0,
+      gap: 0,
     }}>
       <span style={{
         fontFamily: 'var(--font-mono)',
         fontWeight: 700,
         fontSize: 13,
         color: 'var(--blue)',
-        marginRight: 32,
+        marginRight: 24,
         letterSpacing: '0.1em',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
       }}>
         MACRODASH
       </span>
@@ -34,7 +39,7 @@ export default function Nav() {
           to={to}
           end={to === '/'}
           style={({ isActive }) => ({
-            padding: '0 16px',
+            padding: '0 14px',
             height: 44,
             display: 'flex',
             alignItems: 'center',
@@ -44,6 +49,8 @@ export default function Nav() {
             color: isActive ? 'var(--text)' : 'var(--muted)',
             borderBottom: isActive ? '2px solid var(--blue)' : '2px solid transparent',
             transition: 'color 0.15s',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           })}
         >
           {label}

@@ -10,7 +10,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Nav />
-      <main style={{ padding: '24px 32px' }}>
+      <main className="page-main">
         <Routes>
           <Route path="/" element={<MacroDashboard />} />
           <Route path="/exec-summary" element={<ExecSummary />} />

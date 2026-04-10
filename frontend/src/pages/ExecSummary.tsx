@@ -164,7 +164,8 @@ export default function ExecSummary() {
 
           {summary.scenarios?.length && (
             <Section title="SCENARIOS">
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+              <div className="table-wrap">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
                 <thead>
                   <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
                     <Th>SCENARIO</Th><Th>PROB</Th><Th>TARGET</Th><Th>RATIONALE</Th>
@@ -181,10 +182,11 @@ export default function ExecSummary() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </Section>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="grid-2">
             {summary.catalysts?.length && (
               <Section title="CATALYSTS">
                 <BulletList items={summary.catalysts} color="var(--green)" />

@@ -82,7 +82,7 @@ export default function CatalystTicker() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 24, overflowX: 'auto' }}>
         {EPICS.map(({ key, label }) => (
           <button
             key={key}
@@ -150,6 +150,7 @@ function LatentView({ data }: { data: any }) {
       {data.summary && <p style={{ marginBottom: 20, lineHeight: 1.7, color: 'var(--muted)' }}>{data.summary}</p>}
       {data.events?.length > 0 && (
         <Section title="EVENTS">
+          <div className="table-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
             <thead><tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
               <Th>DATE</Th><Th>EVENT</Th><Th>REACTION</Th><Th>NOTES</Th>
@@ -165,10 +166,12 @@ function LatentView({ data }: { data: any }) {
               ))}
             </tbody>
           </table>
+          </div>
         </Section>
       )}
       {data.estimateRevisions?.length > 0 && (
         <Section title="ESTIMATE REVISIONS">
+          <div className="table-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
             <thead><tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
               <Th>DATE</Th><Th>METRIC</Th><Th>CHANGE</Th>
@@ -183,6 +186,7 @@ function LatentView({ data }: { data: any }) {
               ))}
             </tbody>
           </table>
+          </div>
         </Section>
       )}
     </div>
@@ -194,7 +198,7 @@ function DefinitiveView({ data }: { data: any }) {
     <div>
       {data.nextEarnings && (
         <Section title="NEXT EARNINGS">
-          <div style={{ display: 'flex', gap: 32, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
+          <div className="stat-row" style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>
             <Stat label="DATE" value={data.nextEarnings.date} />
             <Stat label="EPS CONSENSUS" value={data.nextEarnings.epsConsensus} />
             <Stat label="REV CONSENSUS" value={data.nextEarnings.revenueConsensus} />
@@ -204,6 +208,7 @@ function DefinitiveView({ data }: { data: any }) {
       )}
       {data.earningsHistory?.length > 0 && (
         <Section title="EARNINGS HISTORY">
+          <div className="table-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
             <thead><tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
               <Th>DATE</Th><Th>EPS ACT.</Th><Th>EPS CONS.</Th><Th>IMPLIED</Th><Th>ACTUAL MOVE</Th>
@@ -220,6 +225,7 @@ function DefinitiveView({ data }: { data: any }) {
               ))}
             </tbody>
           </table>
+          </div>
         </Section>
       )}
       {data.upcomingEvents?.length > 0 && (
@@ -267,6 +273,7 @@ function MacroView({ data }: { data: any }) {
       )}
       {data.sensitivities?.length > 0 && (
         <Section title="MACRO SENSITIVITIES">
+          <div className="table-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
             <thead><tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
               <Th>FACTOR</Th><Th>DIRECTION</Th><Th>BETA</Th><Th>NOTES</Th>
@@ -284,9 +291,10 @@ function MacroView({ data }: { data: any }) {
               ))}
             </tbody>
           </table>
+          </div>
         </Section>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="grid-2">
         {data.riskOn && <Section title="RISK-ON"><p style={{ fontSize: 13, lineHeight: 1.7 }}>{data.riskOn}</p></Section>}
         {data.riskOff && <Section title="RISK-OFF"><p style={{ fontSize: 13, lineHeight: 1.7 }}>{data.riskOff}</p></Section>}
       </div>
