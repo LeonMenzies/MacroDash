@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { EpicView, type EpicKey } from '../components/EpicViews';
 
 const API = import.meta.env.VITE_API_BASE || '/api';
 const TEST_TICKERS = ['RF', 'CCL', 'EPAM', 'CENX'];
@@ -11,7 +12,7 @@ const MARKET_CAPS = ['Large Cap', 'Mid Cap', 'Small Cap', 'Micro Cap'];
 interface Save {
   id: string;
   ticker: string;
-  epic: string;
+  epic: EpicKey;
   sector: string | null;
   industry: string | null;
   market_cap: string | null;
@@ -221,10 +222,8 @@ export default function CatalystBrain() {
             )}
 
             {expanded === s.id && editing !== s.id && (
-              <div style={{ borderTop: '1px solid var(--border)', padding: '12px 16px' }}>
-                <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', whiteSpace: 'pre-wrap', margin: 0 }}>
-                  {JSON.stringify(s.data, null, 2)}
-                </pre>
+              <div style={{ borderTop: '1px solid var(--border)', padding: '16px' }}>
+                <EpicView epic={s.epic} data={s.data} />
               </div>
             )}
           </div>
