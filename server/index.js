@@ -6,6 +6,7 @@ const macroRoutes = require('./routes/macro');
 const execSummaryRoutes = require('./routes/execSummary');
 const catalystRoutes = require('./routes/catalyst');
 const ideasRoutes = require('./routes/ideas');
+const catalystSavesRoutes = require('./routes/catalystSaves');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -17,6 +18,7 @@ app.use('/api/macro', macroRoutes);
 app.use('/api/exec-summary', execSummaryRoutes);
 app.use('/api/catalyst', catalystRoutes);
 app.use('/api/ideas', ideasRoutes);
+app.use('/api/catalyst-saves', catalystSavesRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

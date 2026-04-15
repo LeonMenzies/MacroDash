@@ -5,38 +5,27 @@ const router = express.Router();
 const EPICS = {
   latent: {
     label: 'Latent Catalysts',
-    prompt: (ticker) => `For ${ticker}, identify idiosyncratic events and price catalysts from the last 6 months. Include:
-- Key events and their price reactions (% move)
-- Estimate revisions (EPS, revenue)
-- Positioning changes or notable flows
-- Short interest changes
-Return as structured JSON: { "events": [{ "date": string, "event": string, "priceReaction": string, "notes": string }], "estimateRevisions": [{ "date": string, "metric": string, "change": string }], "summary": string }`,
+    prompt: (ticker) => `You are a sell-side analyst. For ${ticker}, search for and return ONLY this JSON (no prose outside it):
+{"events":[{"date":"","event":"","priceReaction":"","notes":""}],"estimateRevisions":[{"date":"","metric":"","change":""}],"summary":""}
+Cover: price-moving events last 6 months with % reactions, EPS/revenue estimate revisions, short interest and positioning changes.`,
   },
   definitive: {
     label: 'Definitive Calendar',
-    prompt: (ticker) => `For ${ticker}, provide the hard-date event calendar. Include:
-- Next earnings date (confirmed or estimated), guidance, consensus EPS/revenue
-- Last 4 earnings: reported vs consensus, implied move vs actual move
-- Upcoming ex-dividend dates, investor days, analyst days, share buyback windows
-Return as JSON: { "nextEarnings": { "date": string, "epsConsensus": string, "revenueConsensus": string, "impliedMove": string }, "earningsHistory": [{ "date": string, "epsActual": string, "epsConsensus": string, "impliedMove": string, "actualMove": string }], "upcomingEvents": [{ "date": string, "event": string }] }`,
+    prompt: (ticker) => `You are a sell-side analyst. For ${ticker}, search and return ONLY this JSON (no prose outside it):
+{"nextEarnings":{"date":"","epsConsensus":"","revenueConsensus":"","impliedMove":""},"earningsHistory":[{"date":"","epsActual":"","epsConsensus":"","impliedMove":"","actualMove":""}],"upcomingEvents":[{"date":"","event":""}]}
+Cover: next earnings (confirmed or est.), last 4 earnings beats/misses with implied vs actual moves, upcoming ex-div/investor days/buyback windows.`,
   },
   horizon: {
     label: 'Horizon Pipeline',
-    prompt: (ticker) => `For ${ticker}, identify soft-date and pipeline catalysts over the next 1-4 months. For each, assign a confidence: CONFIRMED, EXPECTED, or RUMORED. Include:
-- Product launches, regulatory decisions (FDA, FTC, etc.)
-- M&A rumours, strategic reviews, spin-off speculation
-- Management changes, activist involvement
-- Macro events specifically relevant to this ticker
-Return as JSON: { "catalysts": [{ "event": string, "expectedTiming": string, "confidence": "CONFIRMED"|"EXPECTED"|"RUMORED", "bullCase": string, "bearCase": string, "estimatedMagnitude": string }] }`,
+    prompt: (ticker) => `You are a sell-side analyst. For ${ticker}, search and return ONLY this JSON (no prose outside it):
+{"catalysts":[{"event":"","expectedTiming":"","confidence":"CONFIRMED|EXPECTED|RUMORED","bullCase":"","bearCase":"","estimatedMagnitude":""}]}
+Cover: product launches, regulatory decisions, M&A/spin-off speculation, activist involvement — 1-4 month horizon.`,
   },
   macro: {
     label: 'Macro Overlay',
-    prompt: (ticker) => `For ${ticker}, analyse macro sensitivities relevant to a 1-4 month trading horizon. Include:
-- Key macro factors (rates, FX, commodities, credit spreads) and historical beta to each
-- Current macro regime assessment and what it means for this ticker
-- How the stock typically behaves in risk-on vs risk-off environments
-- Any sector-specific macro tailwinds or headwinds right now
-Return as JSON: { "sensitivities": [{ "factor": string, "direction": "positive"|"negative"|"mixed", "beta": string, "notes": string }], "regimeAssessment": string, "riskOn": string, "riskOff": string }`,
+    prompt: (ticker) => `You are a sell-side analyst. For ${ticker}, search and return ONLY this JSON (no prose outside it):
+{"sensitivities":[{"factor":"","direction":"positive|negative|mixed","beta":"","notes":""}],"regimeAssessment":"","riskOn":"","riskOff":""}
+Cover: rates/FX/commodity/credit betas, current macro regime impact, risk-on vs risk-off behaviour.`,
   },
 };
 
@@ -47,37 +36,102 @@ router.get('/:ticker', async (req, res) => {
   if (!EPICS[epic]) {
     return res.status(400).json({ error: `Unknown epic. Choose from: ${Object.keys(EPICS).join(', ')}` });
   }
-
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' });
   }
 
-  try {
-    const client = new Anthropic();
-    const { prompt } = EPICS[epic];
+  // SSE setup
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
 
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }],
-      messages: [{ role: 'user', content: prompt(ticker) }],
-    });
+  function send(obj) {
+    res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  }
 
-    const textBlock = message.content.find((b) => b.type === 'text');
-    const raw = textBlock?.text || '';
+  const client = new Anthropic({ defaultHeaders: { 'anthropic-beta': 'web-search-2025-03-05' } });
 
-    let data;
-    try {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      data = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw };
-    } catch {
-      data = { raw };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      const wait = attempt * 30;
+      send({ type: 'status', message: `Rate limited — retrying in ${wait}s...` });
+      await new Promise((r) => setTimeout(r, wait * 1000));
     }
 
-    res.json({ ticker, epic, label: EPICS[epic].label, data });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    try {
+      send({ type: 'status', message: 'Starting analysis...' });
+
+      let fullText = '';
+      let searchCount = 0;
+      let inSearchBlock = false;
+      let searchInputBuf = '';
+
+      const stream = client.messages.stream({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+        messages: [{ role: 'user', content: EPICS[epic].prompt(ticker) }],
+      });
+
+      stream.on('streamEvent', (event) => {
+        if (event.type === 'content_block_start') {
+          const block = event.content_block;
+          if (block.type === 'tool_use' && block.name === 'web_search') {
+            searchCount++;
+            inSearchBlock = true;
+            searchInputBuf = '';
+            send({ type: 'status', message: `Web search ${searchCount}/3...` });
+          } else if (block.type === 'text') {
+            inSearchBlock = false;
+            send({ type: 'status', message: 'Writing analysis...' });
+          }
+        }
+
+        if (event.type === 'content_block_delta' && inSearchBlock && event.delta?.type === 'input_json_delta') {
+          searchInputBuf += event.delta.partial_json || '';
+          try {
+            const parsed = JSON.parse(searchInputBuf);
+            if (parsed.query) send({ type: 'status', message: `Searching: "${parsed.query}"` });
+          } catch {}
+        }
+
+        if (event.type === 'content_block_stop' && inSearchBlock) {
+          inSearchBlock = false;
+        }
+      });
+
+      stream.on('text', (delta) => {
+        fullText += delta;
+        send({ type: 'text', delta });
+      });
+
+      await stream.finalMessage();
+
+      // Strip markdown fences if present, then extract outermost JSON object
+      let data;
+      try {
+        const stripped = fullText.replace(/```(?:json)?\s*/g, '').replace(/```/g, '');
+        const start = stripped.indexOf('{');
+        const end = stripped.lastIndexOf('}');
+        data = start !== -1 && end > start ? JSON.parse(stripped.slice(start, end + 1)) : { raw: fullText };
+      } catch {
+        data = { raw: fullText };
+      }
+
+      send({ type: 'done', ticker, epic, label: EPICS[epic].label, data });
+      res.end();
+      return;
+    } catch (err) {
+      if (err.status === 429 && attempt < 2) {
+        console.warn(`Rate limited on attempt ${attempt + 1}`);
+        continue;
+      }
+      console.error(err);
+      send({ type: 'error', message: err.message });
+      res.end();
+      return;
+    }
   }
 });
 
