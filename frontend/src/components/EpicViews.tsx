@@ -1,13 +1,30 @@
 export type EpicKey = 'latent' | 'definitive' | 'horizon' | 'macro';
 
 export function EpicView({ epic, data }: { epic: EpicKey; data: any }) {
-  if (data.raw) {
-    return <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>{data.raw}</pre>;
+  // If stored as raw text, attempt to extract JSON before falling back to prose display
+  const resolved: any = (() => {
+    if (!data?.raw) return data;
+    try {
+      const stripped = data.raw.replace(/```(?:json)?\s*/g, '').replace(/```/g, '').trim();
+      const start = stripped.indexOf('{');
+      const end = stripped.lastIndexOf('}');
+      if (start !== -1 && end > start) return JSON.parse(stripped.slice(start, end + 1));
+    } catch {}
+    return data;
+  })();
+
+  if (resolved.raw) {
+    return (
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '14px 18px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '0.1em', marginBottom: 10 }}>RAW RESPONSE</div>
+        <p style={{ fontSize: 13, lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>{resolved.raw}</p>
+      </div>
+    );
   }
-  if (epic === 'latent') return <LatentView data={data} />;
-  if (epic === 'definitive') return <DefinitiveView data={data} />;
-  if (epic === 'horizon') return <HorizonView data={data} />;
-  if (epic === 'macro') return <MacroView data={data} />;
+  if (epic === 'latent') return <LatentView data={resolved} />;
+  if (epic === 'definitive') return <DefinitiveView data={resolved} />;
+  if (epic === 'horizon') return <HorizonView data={resolved} />;
+  if (epic === 'macro') return <MacroView data={resolved} />;
   return null;
 }
 

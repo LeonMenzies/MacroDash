@@ -8,6 +8,7 @@ interface Idea {
   date: string;
   tag: string;
   text: string;
+  status: 'open' | 'watching' | 'done';
 }
 
 const TAGS = ['idea', 'bug', 'improvement', 'question'];
@@ -17,6 +18,14 @@ const TAG_COLORS: Record<string, string> = {
   bug: 'var(--red)',
   improvement: 'var(--green)',
   question: 'var(--yellow)',
+};
+
+const STATUS_CYCLE: Idea['status'][] = ['open', 'watching', 'done'];
+
+const STATUS_STYLES: Record<Idea['status'], { color: string; bg: string }> = {
+  open:     { color: 'var(--muted)',  bg: 'transparent' },
+  watching: { color: 'var(--yellow)', bg: 'transparent' },
+  done:     { color: 'var(--green)',  bg: 'transparent' },
 };
 
 export default function Ideas() {
@@ -59,6 +68,16 @@ export default function Ideas() {
     try {
       await axios.delete(`${API}/ideas/${id}`);
       setIdeas((prev) => prev.filter((i) => i.id !== id));
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message);
+    }
+  }
+
+  async function cycleStatus(idea: Idea) {
+    const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(idea.status) + 1) % STATUS_CYCLE.length];
+    try {
+      const { data } = await axios.patch(`${API}/ideas/${idea.id}/status`, { status: next });
+      setIdeas((prev) => prev.map((i) => i.id === idea.id ? { ...i, status: data.status } : i));
     } catch (err: any) {
       setError(err.response?.data?.error || err.message);
     }
@@ -166,6 +185,26 @@ export default function Ideas() {
               <div style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{idea.text}</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{idea.date}</div>
             </div>
+            <button
+              onClick={() => cycleStatus(idea)}
+              title="Click to change status"
+              style={{
+                background: 'none',
+                border: `1px solid ${STATUS_STYLES[idea.status || 'open'].color}`,
+                color: STATUS_STYLES[idea.status || 'open'].color,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                padding: '2px 8px',
+                borderRadius: 3,
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {idea.status || 'open'}
+            </button>
             <button
               onClick={() => remove(idea.id)}
               style={{

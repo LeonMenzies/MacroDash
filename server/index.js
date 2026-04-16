@@ -7,6 +7,7 @@ const execSummaryRoutes = require('./routes/execSummary');
 const catalystRoutes = require('./routes/catalyst');
 const ideasRoutes = require('./routes/ideas');
 const catalystSavesRoutes = require('./routes/catalystSaves');
+const tickerMetaRoutes = require('./routes/tickerMeta');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -19,6 +20,7 @@ app.use('/api/exec-summary', execSummaryRoutes);
 app.use('/api/catalyst', catalystRoutes);
 app.use('/api/ideas', ideasRoutes);
 app.use('/api/catalyst-saves', catalystSavesRoutes);
+app.use('/api/ticker-meta', tickerMetaRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
