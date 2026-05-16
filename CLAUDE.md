@@ -44,18 +44,11 @@ docker compose up -d --build
 Frontend: http://localhost:4002
 Server API: http://localhost:4001
 
-### Deploying changes to the server
-
-After pushing to GitHub, SSH to the server and run:
+### Deploying changes (local Docker)
 
 ```bash
-ssh leon@172.234.196.74
-cd ~/MacroDash          # adjust path if different
-git pull origin master
-docker compose up -d --build
+docker compose build --no-cache && docker compose up -d
 ```
-
-The server runs all apps on a shared Docker host. MacroDash containers are `macrodash-frontend-1` (port 4002) and `macrodash-server-1` (port 4001).
 
 To check logs:
 ```bash
@@ -98,6 +91,23 @@ CORS_ORIGIN=http://localhost:4000   # or the server's public URL
 ### Stage 4 — Portfolio Tracker
 - Manual position entry, options fields (strike/expiry/premium)
 - Expiry countdown, P&L display, thesis tagging
+
+---
+
+## Deployment Rule
+
+After completing any code change, always rebuild and restart the local Docker app:
+
+```bash
+docker compose build --no-cache && docker compose up -d
+```
+
+Then verify both containers are healthy:
+
+```bash
+docker logs macrodash-server-1 --tail 20
+docker logs macrodash-frontend-1 --tail 10
+```
 
 ---
 

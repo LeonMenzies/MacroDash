@@ -8,6 +8,10 @@ const catalystRoutes = require('./routes/catalyst');
 const ideasRoutes = require('./routes/ideas');
 const catalystSavesRoutes = require('./routes/catalystSaves');
 const tickerMetaRoutes = require('./routes/tickerMeta');
+const tickersRoutes = require('./routes/tickers');
+const stockRoutes = require('./routes/stock');
+const industryRoutes = require('./routes/industry');
+const industrySavesRoutes = require('./routes/industrySaves');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -21,6 +25,10 @@ app.use('/api/catalyst', catalystRoutes);
 app.use('/api/ideas', ideasRoutes);
 app.use('/api/catalyst-saves', catalystSavesRoutes);
 app.use('/api/ticker-meta', tickerMetaRoutes);
+app.use('/api/tickers', tickersRoutes);
+app.use('/api/stock', stockRoutes);
+app.use('/api/industry', industryRoutes);
+app.use('/api/industry-saves', industrySavesRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

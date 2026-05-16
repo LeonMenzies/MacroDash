@@ -106,7 +106,7 @@ router.post('/regime', async (req, res) => {
     const client = new Anthropic();
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 800,
+      max_tokens: 500,
       messages: [{
         role: 'user',
         content: `You are a macro strategist. Summarise the following text into a concise regime assessment for an L/S equity options desk with a 1-4 month horizon. Cover: current regime label, key risks, and what it means for equity volatility and positioning. Be direct and dense — no filler.\n\n${text}`,

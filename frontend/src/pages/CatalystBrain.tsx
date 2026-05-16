@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { EpicView, type EpicKey } from '../components/EpicViews';
 
 const API = import.meta.env.VITE_API_BASE || '/api';
-const TEST_TICKERS = ['RF', 'CCL', 'EPAM', 'CENX'];
+
+interface FmpStock {
+  symbol: string;
+  companyName: string;
+  pe: number | null;
+  sector: string | null;
+}
+
 const EPICS = ['latent', 'definitive', 'horizon', 'macro'];
 const SECTORS = ['Technology', 'Financials', 'Healthcare', 'Industrials', 'Consumer Discretionary', 'Consumer Staples', 'Energy', 'Materials', 'Real Estate', 'Utilities', 'Communication Services'];
 const MARKET_CAPS = ['Large Cap', 'Mid Cap', 'Small Cap', 'Micro Cap'];
@@ -21,8 +28,19 @@ interface Save {
 }
 
 export default function CatalystBrain() {
-  const [input, setInput] = useState('');
   const navigate = useNavigate();
+
+  // Search / autocomplete
+  const [query, setQuery] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // FMP stocks
+  const [stocks, setStocks] = useState<FmpStock[]>([]);
+  const [stocksLoading, setStocksLoading] = useState(true);
+  const [fmpError, setFmpError] = useState(false);
+
+  // Saved queries
   const [saves, setSaves] = useState<Save[]>([]);
   const [filterEpic, setFilterEpic] = useState('');
   const [activeSector, setActiveSector] = useState('ALL');
@@ -36,6 +54,31 @@ export default function CatalystBrain() {
     if (t) navigate(`/catalyst-brain/${t}`);
   }
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Screener fetch via server (Yahoo Finance)
+  useEffect(() => {
+    fetch(`${API}/tickers/screener`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!Array.isArray(data)) { setFmpError(true); return; }
+        setStocks(data);
+      })
+      .catch(() => setFmpError(true))
+      .finally(() => setStocksLoading(false));
+  }, []);
+
+  useEffect(() => { loadSaves(); }, [filterEpic]);
+
   async function loadSaves() {
     try {
       const params: Record<string, string> = {};
@@ -46,8 +89,6 @@ export default function CatalystBrain() {
       // ignore
     }
   }
-
-  useEffect(() => { loadSaves(); }, [filterEpic]);
 
   async function deleteSave(id: string) {
     await axios.delete(`${API}/catalyst-saves/${id}`);
@@ -82,15 +123,20 @@ export default function CatalystBrain() {
     }
   }
 
-  // Derive sector tabs from actual data
+  // Autocomplete: when typing filter by symbol/name; when empty show top P/E stocks
+  const q = query.trim().toUpperCase();
+  const dropdownStocks = q
+    ? stocks
+        .filter((s) => s.symbol.startsWith(q) || s.symbol.includes(q) || s.companyName?.toUpperCase().includes(q))
+        .slice(0, 8)
+    : stocks.slice(0, 8);
+
+  // Recent tickers from saves (unique, preserve order)
+  const recentTickers = Array.from(new Set(saves.map((s) => s.ticker))).slice(0, 8);
+
+  // Saved queries grouping
   const sectorTabs = ['ALL', ...Array.from(new Set(saves.map((s) => s.sector).filter(Boolean))) as string[]];
-
-  const filtered = saves.filter((s) => {
-    if (activeSector !== 'ALL' && s.sector !== activeSector) return false;
-    return true;
-  });
-
-  // Group filtered saves by ticker for display
+  const filtered = saves.filter((s) => activeSector === 'ALL' || s.sector === activeSector);
   const grouped = filtered.reduce<Record<string, Save[]>>((acc, s) => {
     (acc[s.ticker] = acc[s.ticker] || []).push(s);
     return acc;
@@ -98,52 +144,129 @@ export default function CatalystBrain() {
 
   return (
     <div>
-      <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)', letterSpacing: '0.1em', marginBottom: 20 }}>
-        CATALYST BRAIN
-      </h1>
+      {/* ── Hero search ── */}
+      <div style={{ marginBottom: 48 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', letterSpacing: '0.12em', marginBottom: 20 }}>
+          CATALYST BRAIN
+        </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 32, maxWidth: 400 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && go(input)}
-          placeholder="Enter ticker (e.g. AAPL)"
-          style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: 14, textTransform: 'uppercase' }}
-        />
-        <button
-          onClick={() => go(input)}
-          style={{
-            background: 'var(--blue)', border: 'none', color: '#000',
-            padding: '6px 18px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontWeight: 700,
-          }}
-        >
-          GO
-        </button>
+        <div ref={searchRef} style={{ position: 'relative', maxWidth: 540 }}>
+          <div style={{ display: 'flex', gap: 0 }}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setDropdownOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { go(query); setDropdownOpen(false); }
+                if (e.key === 'Escape') setDropdownOpen(false);
+              }}
+              placeholder="Search ticker or company…"
+              style={{
+                flex: 1,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 20,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                padding: '14px 18px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRight: 'none',
+                borderRadius: '4px 0 0 4px',
+                color: 'var(--text)',
+                outline: 'none',
+              }}
+              autoFocus
+            />
+            <button
+              onClick={() => { go(query); setDropdownOpen(false); }}
+              style={{
+                background: 'var(--blue)', border: 'none', color: '#000',
+                padding: '14px 24px', borderRadius: '0 4px 4px 0',
+                fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              GO →
+            </button>
+          </div>
+
+          {/* Autocomplete dropdown */}
+          {dropdownOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 2px)', left: 0, right: 0, zIndex: 100,
+              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              overflow: 'hidden',
+            }}>
+              {stocksLoading && (
+                <div style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>Loading stocks…</div>
+              )}
+              {!stocksLoading && fmpError && (
+                <div style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>
+                  Could not load screener — type any ticker and press Enter.
+                </div>
+              )}
+              {!stocksLoading && !fmpError && dropdownStocks.length === 0 && (
+                <div style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>No matches.</div>
+              )}
+              {!fmpError && dropdownStocks.length > 0 && (
+                <>
+                  <div style={{ padding: '6px 16px 4px', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: '0.1em', borderBottom: '1px solid var(--border)' }}>
+                    {q ? 'RESULTS' : 'HIGHEST P/E'}
+                  </div>
+                  {dropdownStocks.map((s) => (
+                    <div
+                      key={s.symbol}
+                      onMouseDown={() => { go(s.symbol); setDropdownOpen(false); setQuery(''); }}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '72px 1fr 90px 56px',
+                        gap: 8,
+                        padding: '10px 16px',
+                        borderBottom: '1px solid var(--border)',
+                        cursor: 'pointer',
+                        alignItems: 'center',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                    >
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{s.symbol}</span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.companyName}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sector || '—'}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--yellow)', textAlign: 'right' }}>{s.pe?.toFixed(1)}x</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div style={{ color: 'var(--muted)', fontSize: 11, fontFamily: 'var(--font-mono)', marginBottom: 12, letterSpacing: '0.08em' }}>
-        WATCHLIST
-      </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 40 }}>
-        {TEST_TICKERS.map((t) => (
-          <button
-            key={t}
-            onClick={() => go(t)}
-            style={{
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              color: 'var(--text)', padding: '6px 16px', borderRadius: 4,
-              fontFamily: 'var(--font-mono)', fontSize: 13,
-            }}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {/* ── Recent tickers ── */}
+      {recentTickers.length > 0 && (
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '0.1em', marginBottom: 10 }}>RECENT</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {recentTickers.map((t) => (
+              <button
+                key={t}
+                onClick={() => go(t)}
+                style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  color: 'var(--text)', padding: '6px 16px', borderRadius: 4,
+                  fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Saved queries */}
-      <div style={{ color: 'var(--muted)', fontSize: 11, fontFamily: 'var(--font-mono)', marginBottom: 14, letterSpacing: '0.08em' }}>
-        SAVED QUERIES
-      </div>
+      {/* ── Saved queries ── */}
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '0.1em', marginBottom: 14 }}>SAVED QUERIES</div>
 
       {/* Sector tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 16, overflowX: 'auto' }}>
@@ -152,16 +275,11 @@ export default function CatalystBrain() {
             key={sector}
             onClick={() => setActiveSector(sector)}
             style={{
-              background: 'none',
-              border: 'none',
+              background: 'none', border: 'none',
               borderBottom: `2px solid ${activeSector === sector ? 'var(--blue)' : 'transparent'}`,
               color: activeSector === sector ? 'var(--text)' : 'var(--muted)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 11,
-              letterSpacing: '0.06em',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
+              fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em',
+              padding: '8px 16px', cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >
             {sector.toUpperCase()}
@@ -189,7 +307,6 @@ export default function CatalystBrain() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {Object.entries(grouped).map(([ticker, tickerSaves]) => (
           <div key={ticker}>
-            {/* Ticker header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15 }}>{ticker}</span>
               {tickerSaves[0].sector && (
@@ -205,18 +322,16 @@ export default function CatalystBrain() {
               )}
               <button
                 onClick={() => navigate(`/catalyst-brain/${ticker}`)}
-                title="Re-run analysis (uses credits)"
                 style={{
                   marginLeft: 'auto', background: 'none', border: '1px solid var(--border)',
                   color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 10,
                   cursor: 'pointer', padding: '2px 8px', borderRadius: 3,
                 }}
               >
-                RE-RUN ↗
+                OPEN ↗
               </button>
             </div>
 
-            {/* Epic rows */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {tickerSaves.map((s) => (
                 <div key={s.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4 }}>
