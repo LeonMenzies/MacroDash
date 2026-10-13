@@ -25,6 +25,22 @@ router.post('/', async (req, res) => {
   res.json(data);
 });
 
+router.patch('/:id', async (req, res) => {
+  const { text, tag } = req.body;
+  if (!text && !tag) return res.status(400).json({ error: 'text or tag required' });
+  const updates = {};
+  if (text) updates.text = text;
+  if (tag) updates.tag = tag;
+  const { data, error } = await supabase
+    .from('ideas')
+    .update(updates)
+    .eq('id', req.params.id)
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
 router.patch('/:id/status', async (req, res) => {
   const { status } = req.body;
   if (!['open', 'watching', 'done'].includes(status)) return res.status(400).json({ error: 'invalid status' });

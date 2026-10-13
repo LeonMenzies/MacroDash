@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { BarChart2, Star, Factory, FileText, Lightbulb } from 'lucide-react';
 
 const API = import.meta.env.VITE_API_BASE || '/api';
 
-const GLOBAL_LINKS = [
-  { to: '/', label: 'MACRO' },
-  { to: '/exec-summary', label: 'EXEC SUMMARY' },
-  { to: '/ideas', label: 'IDEAS' },
-  { to: '/tickers', label: 'TICKERS' },
-  { to: '/industry', label: 'INDUSTRY' },
+const NAV_LINKS = [
+  { to: '/',             label: 'MACRO',        Icon: BarChart2   },
+  { to: '/tickers',      label: 'WATCHLIST',    Icon: Star        },
+  { to: '/industry',     label: 'INDUSTRY',     Icon: Factory     },
+  { to: '/exec-summary', label: 'EXEC SUMMARY', Icon: FileText    },
+  { to: '/ideas',        label: 'IDEAS',        Icon: Lightbulb   },
 ];
 
 interface ScreenerItem { symbol: string; companyName: string; sector: string | null; }
@@ -38,9 +39,7 @@ function StockSearch() {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -55,65 +54,38 @@ function StockSearch() {
   }
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value.toUpperCase())}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') go();
-            if (e.key === 'Escape') { setOpen(false); setQuery(''); }
-          }}
-          placeholder="TICKER…"
-          maxLength={10}
-          spellCheck={false}
-          style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            color: 'var(--text)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 12,
-            letterSpacing: '0.08em',
-            padding: '4px 8px',
-            outline: 'none',
-            width: 100,
-            transition: 'border-color 0.15s, width 0.2s',
-          }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--blue)'; e.currentTarget.style.width = '140px'; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.width = '100px'; }}
-        />
-        <button
-          onClick={() => go()}
-          style={{
-            background: 'var(--blue)', border: 'none', borderRadius: 4, color: '#000',
-            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-            padding: '4px 10px', cursor: 'pointer', flexShrink: 0,
-          }}
-        >
-          GO
-        </button>
-      </div>
-
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value.toUpperCase())}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') go();
+          if (e.key === 'Escape') { setOpen(false); setQuery(''); }
+        }}
+        placeholder="TICKER / SEARCH…"
+        maxLength={10}
+        spellCheck={false}
+        style={{ width: '100%' }}
+      />
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-          background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4,
-          minWidth: 220, zIndex: 200, boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+          background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4,
+          zIndex: 300, boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
         }}>
           {suggestions.map((s) => (
             <div
               key={s.symbol}
               onClick={() => go(s.symbol)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid var(--border2)',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg)'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--surface3)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--blue)', minWidth: 52 }}>{s.symbol}</span>
-              <span style={{ fontSize: 12, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.companyName}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--blue)', minWidth: 44 }}>{s.symbol}</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.companyName}</span>
             </div>
           ))}
         </div>
@@ -124,23 +96,61 @@ function StockSearch() {
 
 export default function Nav() {
   return (
-    <nav className="app-nav">
-      <span className="nav-brand">MACRODASH</span>
-      <div className="nav-search-wrap">
+    <>
+      {/* ── Mobile top search bar ── */}
+      <div className="mobile-topbar">
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--blue)', flexShrink: 0 }}>M</span>
         <StockSearch />
       </div>
-      <div className="nav-links-row">
-        {GLOBAL_LINKS.map(({ to, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
-          >
-            {label}
-          </NavLink>
-        ))}
-      </div>
-    </nav>
+
+      {/* ── Desktop sidebar ── */}
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <img src="/MacroDashLogo.png" alt="MacroDash" className="sidebar-logo" />
+        </div>
+
+        <div className="sidebar-search">
+          <StockSearch />
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="sidebar-section-label">NAVIGATION</div>
+          {NAV_LINKS.map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+            >
+              <span className="sidebar-icon"><Icon size={14} strokeWidth={1.75} /></span>
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: '0.1em' }}>
+            L/S EQUITY DESK
+          </span>
+        </div>
+      </aside>
+
+      {/* ── Mobile bottom nav ── */}
+      <nav className="mobile-nav">
+        <div className="mobile-nav-inner">
+          {NAV_LINKS.map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) => `mobile-nav-link${isActive ? ' active' : ''}`}
+            >
+              <span className="mobile-nav-icon"><Icon size={18} strokeWidth={1.75} /></span>
+              {label.split(' ')[0]}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+    </>
   );
 }

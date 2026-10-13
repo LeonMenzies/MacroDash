@@ -4,6 +4,7 @@ import axios from 'axios';
 import { EpicView, type EpicKey } from '../components/EpicViews';
 import StockOverview from '../components/StockOverview';
 import TimelineView from '../components/TimelineView';
+import KpiView from '../components/KpiView';
 
 const API = import.meta.env.VITE_API_BASE || '/api';
 
@@ -50,15 +51,16 @@ function ModelSelect({ value, onChange }: { value: ModelKey; onChange: (v: Model
   );
 }
 
-type TabKey = 'overview' | 'timeline' | EpicKey;
+type TabKey = 'overview' | 'timeline' | 'kpi' | EpicKey;
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: 'overview', label: 'OVERVIEW' },
-  { key: 'timeline', label: 'TIMELINE' },
-  { key: 'latent', label: 'LATENT' },
+  { key: 'overview',   label: 'OVERVIEW' },
+  { key: 'kpi',        label: 'KPIs' },
+  { key: 'timeline',   label: 'TIMELINE' },
+  { key: 'latent',     label: 'LATENT' },
   { key: 'definitive', label: 'DEFINITIVE' },
-  { key: 'horizon', label: 'HORIZON' },
-  { key: 'macro', label: 'MACRO OVERLAY' },
+  { key: 'horizon',    label: 'HORIZON' },
+  { key: 'macro',      label: 'MACRO OVERLAY' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -181,8 +183,14 @@ export default function StockDetail() {
   const [loadVersion, setLoadVersion] = useState(0);
   const [model, setModel] = useState<ModelKey>('haiku');
 
-  const isEpicTab = (k: TabKey): k is EpicKey => k !== 'overview' && k !== 'timeline';
+  const isEpicTab = (k: TabKey): k is EpicKey => k !== 'overview' && k !== 'timeline' && k !== 'kpi';
   const activeEpic: EpicKey = isEpicTab(activeTab) ? activeTab : 'latent';
+
+  // KPI state
+  const [kpiData, setKpiData] = useState<any | null>(null);
+  const [kpiLog, setKpiLog] = useState<string[]>([]);
+  const [kpiRunning, setKpiRunning] = useState(false);
+  const [kpiError, setKpiError] = useState<string | null>(null);
 
   // Enrich ticker (saves to Supabase watchlist + gets company name)
   useEffect(() => {
@@ -203,6 +211,55 @@ export default function StockDetail() {
       setSavedData(map);
     }).catch(() => {});
   }, [ticker]);
+
+  // Load saved KPI data
+  useEffect(() => {
+    if (!ticker) return;
+    axios.get(`${API}/kpi-saves/${ticker}`).then(({ data }) => {
+      if (data?.data) setKpiData(data.data);
+    }).catch(() => {});
+  }, [ticker]);
+
+  function loadKpis() {
+    if (!ticker || kpiRunning) return;
+    setKpiRunning(true);
+    setKpiError(null);
+    setKpiLog(['Starting KPI analysis...']);
+    setKpiData(null);
+    const url = `${API}/kpis/${ticker}?model=${model}`;
+    fetch(url).then(async (response) => {
+      if (!response.body) throw new Error('No response body');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let event: any;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+          if (event.type === 'status') setKpiLog((l) => [...l, event.message]);
+          else if (event.type === 'done') {
+            setKpiData(event.data);
+            setKpiRunning(false);
+            setKpiLog((l) => [...l, 'Done']);
+            axios.post(`${API}/kpi-saves`, { ticker, data: event.data }).catch(() => {});
+          } else if (event.type === 'error') {
+            setKpiError(event.message);
+            setKpiRunning(false);
+          }
+        }
+      }
+      if (kpiRunning) setKpiRunning(false);
+    }).catch((err: any) => {
+      setKpiError(err.message);
+      setKpiRunning(false);
+    });
+  }
 
   const job = useJob(ticker, activeEpic, loadVersion);
 
@@ -252,7 +309,8 @@ export default function StockDetail() {
           const epicJob = isEpicTab(key) && ticker ? jobs.get(jobKey(ticker, key)) : null;
           const hasData = isEpicTab(key) && (!!savedData[key] || epicJob?.status === 'done');
           const timelineReady = key === 'timeline' && (['latent', 'definitive', 'horizon'] as EpicKey[]).some((e) => !!savedData[e]);
-          const running = epicJob?.status === 'running';
+          const kpiReady = key === 'kpi' && !!kpiData;
+          const running = epicJob?.status === 'running' || (key === 'kpi' && kpiRunning);
           return (
             <button
               key={key}
@@ -273,7 +331,7 @@ export default function StockDetail() {
             >
               {label}
               {running && <span style={{ marginLeft: 6, color: 'var(--blue)', fontSize: 8 }}>●</span>}
-              {!running && (hasData || timelineReady) && <span style={{ marginLeft: 6, color: 'var(--green)', fontSize: 8 }}>●</span>}
+              {!running && (hasData || timelineReady || kpiReady) && <span style={{ marginLeft: 6, color: 'var(--green)', fontSize: 8 }}>●</span>}
             </button>
           );
         })}
@@ -296,6 +354,43 @@ export default function StockDetail() {
           />
         );
       })()}
+
+      {/* KPI tab */}
+      {activeTab === 'kpi' && (
+        <>
+          {kpiRunning && (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '14px 18px', marginBottom: 20 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '0.1em', marginBottom: 10 }}>PROGRESS</div>
+              {kpiLog.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: i === kpiLog.length - 1 ? 'var(--blue)' : 'var(--muted)' }}>
+                    {i === kpiLog.length - 1 ? '●' : '✓'}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: i === kpiLog.length - 1 ? 'var(--text)' : 'var(--muted)' }}>{msg}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {kpiError && <div style={{ color: 'var(--red)', fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 16 }}>{kpiError}</div>}
+          {!kpiRunning && !kpiData && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button onClick={loadKpis} style={{ background: 'var(--blue)', border: 'none', color: '#000', padding: '8px 20px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                LOAD KPIs
+              </button>
+              <ModelSelect value={model} onChange={setModel} />
+            </div>
+          )}
+          {!kpiRunning && kpiData && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <button onClick={loadKpis} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--muted)', padding: '4px 12px', borderRadius: 3, fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer' }}>
+                RE-RUN ↗
+              </button>
+              <ModelSelect value={model} onChange={setModel} />
+            </div>
+          )}
+          {kpiData && <KpiView data={kpiData} />}
+        </>
+      )}
 
       {/* Epic tabs */}
       {isEpicTab(activeTab) && (

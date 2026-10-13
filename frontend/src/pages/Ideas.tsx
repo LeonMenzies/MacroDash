@@ -35,6 +35,9 @@ export default function Ideas() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [editTag, setEditTag] = useState('idea');
 
   async function load() {
     try {
@@ -68,6 +71,23 @@ export default function Ideas() {
     try {
       await axios.delete(`${API}/ideas/${id}`);
       setIdeas((prev) => prev.filter((i) => i.id !== id));
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message);
+    }
+  }
+
+  function startEdit(idea: Idea) {
+    setEditingId(idea.id);
+    setEditText(idea.text);
+    setEditTag(idea.tag);
+  }
+
+  async function saveEdit(id: string) {
+    if (!editText.trim()) return;
+    try {
+      const { data } = await axios.patch(`${API}/ideas/${id}`, { text: editText.trim(), tag: editTag });
+      setIdeas((prev) => prev.map((i) => i.id === id ? { ...i, text: data.text, tag: data.tag } : i));
+      setEditingId(null);
     } catch (err: any) {
       setError(err.response?.data?.error || err.message);
     }
@@ -168,59 +188,156 @@ export default function Ideas() {
               alignItems: 'flex-start',
             }}
           >
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                fontWeight: 700,
-                color: TAG_COLORS[idea.tag] || 'var(--muted)',
-                textTransform: 'uppercase',
-                minWidth: 72,
-                paddingTop: 2,
-              }}
-            >
-              {idea.tag}
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{idea.text}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{idea.date}</div>
-            </div>
-            <button
-              onClick={() => cycleStatus(idea)}
-              title="Click to change status"
-              style={{
-                background: 'none',
-                border: `1px solid ${STATUS_STYLES[idea.status || 'open'].color}`,
-                color: STATUS_STYLES[idea.status || 'open'].color,
-                fontFamily: 'var(--font-mono)',
-                fontSize: 9,
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                padding: '2px 8px',
-                borderRadius: 3,
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {idea.status || 'open'}
-            </button>
-            <button
-              onClick={() => remove(idea.id)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--muted)',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 16,
-                lineHeight: 1,
-                padding: 0,
-              }}
-              title="Delete"
-            >
-              ×
-            </button>
+            {editingId === idea.id ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {TAGS.map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setEditTag(t)}
+                      style={{
+                        background: editTag === t ? TAG_COLORS[t] : 'var(--surface2)',
+                        border: `1px solid ${editTag === t ? TAG_COLORS[t] : 'var(--border)'}`,
+                        color: editTag === t ? '#000' : 'var(--muted)',
+                        padding: '3px 10px',
+                        borderRadius: 3,
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveEdit(idea.id); }}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 13,
+                    padding: '8px 10px',
+                    borderRadius: 4,
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => saveEdit(idea.id)}
+                    disabled={!editText.trim()}
+                    style={{
+                      background: 'var(--blue)',
+                      border: 'none',
+                      color: '#000',
+                      padding: '4px 14px',
+                      borderRadius: 4,
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      fontSize: 11,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    SAVE
+                  </button>
+                  <button
+                    onClick={() => setEditingId(null)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--border)',
+                      color: 'var(--muted)',
+                      padding: '4px 14px',
+                      borderRadius: 4,
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 11,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: TAG_COLORS[idea.tag] || 'var(--muted)',
+                    textTransform: 'uppercase',
+                    minWidth: 72,
+                    paddingTop: 2,
+                  }}
+                >
+                  {idea.tag}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{idea.text}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', marginTop: 6 }}>{idea.date}</div>
+                </div>
+                <button
+                  onClick={() => cycleStatus(idea)}
+                  title="Click to change status"
+                  style={{
+                    background: 'none',
+                    border: `1px solid ${STATUS_STYLES[idea.status || 'open'].color}`,
+                    color: STATUS_STYLES[idea.status || 'open'].color,
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: '0.06em',
+                    padding: '2px 8px',
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {idea.status || 'open'}
+                </button>
+                <button
+                  onClick={() => startEdit(idea)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 12,
+                    lineHeight: 1,
+                    padding: 0,
+                  }}
+                  title="Edit"
+                >
+                  ✎
+                </button>
+                <button
+                  onClick={() => remove(idea.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 16,
+                    lineHeight: 1,
+                    padding: 0,
+                  }}
+                  title="Delete"
+                >
+                  ×
+                </button>
+              </>
+            )}
           </div>
         ))}
         {!loading && ideas.length === 0 && (

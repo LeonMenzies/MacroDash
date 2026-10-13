@@ -50,9 +50,10 @@ router.post('/', upload.single('file'), async (req, res) => {
     });
 
     const raw = message.content[0].text;
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     let summary;
     try {
-      summary = JSON.parse(raw);
+      summary = JSON.parse(cleaned);
     } catch {
       summary = { raw };
     }

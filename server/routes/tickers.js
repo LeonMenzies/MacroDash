@@ -88,6 +88,9 @@ router.get('/:ticker([A-Z0-9.^-]+)/enrich', async (req, res) => {
     gics_industry: null,
     market_cap: null,
     forward_pe: null,
+    last_price: null,
+    beta: null,
+    next_earnings_date: null,
     last_updated: new Date().toISOString(),
   };
 
@@ -95,17 +98,29 @@ router.get('/:ticker([A-Z0-9.^-]+)/enrich', async (req, res) => {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const result = await yf.quoteSummary(ticker, {
-        modules: ['assetProfile', 'summaryDetail', 'defaultKeyStatistics'],
+        modules: ['assetProfile', 'summaryDetail', 'defaultKeyStatistics', 'calendarEvents', 'price'],
       });
       const profile = result.assetProfile || {};
       const summary = result.summaryDetail || {};
       const stats = result.defaultKeyStatistics || {};
+      const calendar = result.calendarEvents || {};
+      const price = result.price || {};
 
       record.company_name = profile.longName || null;
       record.gics_sector = normalizeSector(profile.sector);
       record.gics_industry = profile.industry || null;
       record.market_cap = toNumber(summary.marketCap);
       record.forward_pe = toNumber(stats.forwardPE);
+      record.last_price = toNumber(price.regularMarketPrice);
+      record.beta = toNumber(summary.beta);
+
+      // next earnings date — calendarEvents.earnings.earningsDate is an array
+      const earningsDates = calendar.earnings?.earningsDate;
+      if (Array.isArray(earningsDates) && earningsDates.length > 0) {
+        const d = earningsDates[0];
+        record.next_earnings_date = d instanceof Date ? d.toISOString().slice(0, 10)
+          : typeof d === 'string' ? d.slice(0, 10) : null;
+      }
       break;
     } catch (err) {
       if (attempt === 0) {
@@ -124,6 +139,29 @@ router.get('/:ticker([A-Z0-9.^-]+)/enrich', async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
+});
+
+// PATCH /api/tickers/:ticker — update stance
+router.patch('/:ticker([A-Z0-9.^-]+)', async (req, res) => {
+  const { stance } = req.body;
+  const { data, error } = await supabase
+    .from('tickers')
+    .update({ stance: stance ?? null })
+    .eq('ticker', req.params.ticker.toUpperCase())
+    .select()
+    .single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// DELETE /api/tickers/:ticker — remove from watchlist
+router.delete('/:ticker([A-Z0-9.^-]+)', async (req, res) => {
+  const { error } = await supabase
+    .from('tickers')
+    .delete()
+    .eq('ticker', req.params.ticker.toUpperCase());
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
 });
 
 module.exports = router;

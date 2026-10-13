@@ -12,6 +12,9 @@ const tickersRoutes = require('./routes/tickers');
 const stockRoutes = require('./routes/stock');
 const industryRoutes = require('./routes/industry');
 const industrySavesRoutes = require('./routes/industrySaves');
+const execSavesRoutes = require('./routes/execSaves');
+const kpisRoutes = require('./routes/kpis');
+const kpiSavesRoutes = require('./routes/kpiSaves');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -29,6 +32,9 @@ app.use('/api/tickers', tickersRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/industry', industryRoutes);
 app.use('/api/industry-saves', industrySavesRoutes);
+app.use('/api/exec-saves', execSavesRoutes);
+app.use('/api/kpis', kpisRoutes);
+app.use('/api/kpi-saves', kpiSavesRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

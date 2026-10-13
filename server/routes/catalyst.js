@@ -2,6 +2,54 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const router = express.Router();
 
+// Escape literal control characters inside JSON string values
+function sanitizeJsonStrings(s) {
+  let inString = false, escaped = false, result = '';
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\') { result += ch; escaped = true; continue; }
+    if (ch === '"') { inString = !inString; result += ch; continue; }
+    if (inString && (ch === '\n' || ch === '\r')) { result += '\\n'; continue; }
+    if (inString && ch === '\t') { result += '\\t'; continue; }
+    result += ch;
+  }
+  return result;
+}
+
+function tryParseJson(s) {
+  try { return JSON.parse(s); } catch {}
+  // depth-track to find outermost object
+  try {
+    let depth = 0, start = -1;
+    for (let i = 0; i < s.length; i++) {
+      if (s[i] === '{') { if (depth === 0) start = i; depth++; }
+      else if (s[i] === '}') { depth--; if (depth === 0 && start !== -1) return JSON.parse(s.slice(start, i + 1)); }
+    }
+  } catch {}
+  // close truncated JSON by appending missing brackets
+  try {
+    let inStr = false, esc = false;
+    const stack = [];
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (esc) { esc = false; continue; }
+      if (c === '\\' && inStr) { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{') stack.push('}');
+      else if (c === '[') stack.push(']');
+      else if (c === '}' || c === ']') stack.pop();
+    }
+    if (stack.length > 0) {
+      // strip trailing incomplete string/value before closing
+      const trimmed = s.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
+      return JSON.parse(trimmed + stack.reverse().join(''));
+    }
+  } catch {}
+  return null;
+}
+
 const EPICS = {
   latent: {
     label: 'Latent Catalysts',
@@ -18,20 +66,20 @@ Cover: next earnings (confirmed or est.), last 4 earnings beats/misses with impl
   horizon: {
     label: 'Horizon Pipeline',
     prompt: (ticker) => `You are a sell-side analyst. For ${ticker}, search and return ONLY this JSON (no prose outside it):
-{"catalysts":[{"event":"","expectedTiming":"","confidence":"CONFIRMED|EXPECTED|RUMORED","bullCase":"","bearCase":"","estimatedMagnitude":"","source":""}]}
-Cover: product launches, regulatory decisions, M&A/spin-off speculation, activist involvement — 1-4 month horizon. For each item set "source" to the URL where you found the information.`,
+{"catalysts":[{"event":"","expectedTiming":"","confidence":"CONFIRMED|EXPECTED|RUMORED","bullCase":"","bullPoints":[""],"bearCase":"","bearPoints":[""],"estimatedMagnitude":"","source":""}]}
+bullCase/bearCase are one-line summaries. bullPoints/bearPoints are 3-5 specific bullet points with detail (data, magnitude, conditions). Cover: product launches, regulatory decisions, M&A/spin-off speculation, activist involvement — 1-4 month horizon. For each item set "source" to the URL where you found the information.`,
   },
   macro: {
     label: 'Macro Overlay',
     prompt: (ticker) => `You are a sell-side analyst. For ${ticker}, search and return ONLY this JSON (no prose outside it):
-{"sensitivities":[{"factor":"","direction":"positive|negative|mixed","beta":"","notes":"","source":""}],"regimeAssessment":"","riskOn":"","riskOff":""}
-Cover: rates/FX/commodity/credit betas, current macro regime impact, risk-on vs risk-off behaviour. For each sensitivity set "source" to the URL where you found the information.`,
+{"sensitivities":[{"factor":"","direction":"positive|negative|mixed","beta":"","notes":"","source":""}],"regimeAssessment":"","riskOn":"","riskOnPoints":[""],"riskOff":"","riskOffPoints":[""]}
+riskOn/riskOff are one-line summaries. riskOnPoints/riskOffPoints are 3-5 specific bullet points explaining what drives each scenario. Cover: rates/FX/commodity/credit betas, current macro regime impact, risk-on vs risk-off behaviour. For each sensitivity set "source" to the URL where you found the information.`,
   },
 };
 
 // Model configs — haiku is no-search, sonnet/opus get web search
 const MODEL_CONFIGS = {
-  haiku:  { id: 'claude-haiku-4-5-20251001',  maxTokens: 2048, webSearch: true },
+  haiku:  { id: 'claude-haiku-4-5-20251001',  maxTokens: 4096, webSearch: true },
   sonnet: { id: 'claude-sonnet-4-6',           maxTokens: 4096, webSearch: true },
   opus:   { id: 'claude-opus-4-7',             maxTokens: 4096, webSearch: true },
 };
@@ -136,16 +184,21 @@ router.get('/:ticker', async (req, res) => {
 
       await stream.finalMessage();
 
-      // Strip cite tags, markdown fences, then extract outermost JSON object
+      // Strip cite tags, markdown fences, trailing commas, then extract JSON
       let data;
       try {
         const cleaned = fullText
           .replace(/<cite[^>]*>([\s\S]*?)<\/cite>/g, '$1')
           .replace(/```(?:json)?\s*/g, '')
-          .replace(/```/g, '');
+          .replace(/```/g, '')
+          .replace(/,(\s*[}\]])/g, '$1');
         const start = cleaned.indexOf('{');
         const end = cleaned.lastIndexOf('}');
-        data = start !== -1 && end > start ? JSON.parse(cleaned.slice(start, end + 1)) : { raw: fullText };
+        if (start === -1 || end <= start) { data = { raw: fullText }; }
+        else {
+          const slice = cleaned.slice(start, end + 1);
+          data = tryParseJson(slice) || tryParseJson(sanitizeJsonStrings(slice)) || { raw: fullText };
+        }
       } catch {
         data = { raw: fullText };
       }

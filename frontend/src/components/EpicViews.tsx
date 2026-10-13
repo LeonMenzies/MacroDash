@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export type EpicKey = 'latent' | 'definitive' | 'horizon' | 'macro';
 
 export function EpicView({ epic, data }: { epic: EpicKey; data: any }) {
@@ -7,16 +9,59 @@ export function EpicView({ epic, data }: { epic: EpicKey; data: any }) {
       .replace(/<cite[^>]*>([\s\S]*?)<\/cite>/g, '$1')
       .replace(/```(?:json)?\s*/g, '')
       .replace(/```/g, '')
+      .replace(/,(\s*[}\]])/g, '$1')
       .trim();
-    try { return JSON.parse(stripped); } catch {}
-    try {
-      let depth = 0, start = -1;
-      for (let i = 0; i < stripped.length; i++) {
-        if (stripped[i] === '{') { if (depth === 0) start = i; depth++; }
-        else if (stripped[i] === '}') { depth--; if (depth === 0 && start !== -1) return JSON.parse(stripped.slice(start, i + 1)); }
+
+    function sanitize(s: string) {
+      let inStr = false, esc = false, out = '';
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (esc) { out += c; esc = false; continue; }
+        if (c === '\\') { out += c; esc = true; continue; }
+        if (c === '"') { inStr = !inStr; out += c; continue; }
+        if (inStr && (c === '\n' || c === '\r')) { out += '\\n'; continue; }
+        if (inStr && c === '\t') { out += '\\t'; continue; }
+        out += c;
       }
-    } catch {}
-    return data;
+      return out;
+    }
+
+    function tryParse(s: string) {
+      try { return JSON.parse(s); } catch {}
+      try {
+        const start = s.indexOf('{'), end = s.lastIndexOf('}');
+        if (start !== -1 && end > start) return JSON.parse(s.slice(start, end + 1));
+      } catch {}
+      try {
+        let depth = 0, start = -1;
+        for (let i = 0; i < s.length; i++) {
+          if (s[i] === '{') { if (depth === 0) start = i; depth++; }
+          else if (s[i] === '}') { depth--; if (depth === 0 && start !== -1) return JSON.parse(s.slice(start, i + 1)); }
+        }
+      } catch {}
+      // close truncated JSON by appending missing brackets
+      try {
+        let inStr = false, esc = false;
+        const stack: string[] = [];
+        for (let i = 0; i < s.length; i++) {
+          const c = s[i];
+          if (esc) { esc = false; continue; }
+          if (c === '\\' && inStr) { esc = true; continue; }
+          if (c === '"') { inStr = !inStr; continue; }
+          if (inStr) continue;
+          if (c === '{') stack.push('}');
+          else if (c === '[') stack.push(']');
+          else if (c === '}' || c === ']') stack.pop();
+        }
+        if (stack.length > 0) {
+          const trimmed = s.replace(/,?\s*"[^"]*$/, '').replace(/,\s*$/, '');
+          return JSON.parse(trimmed + stack.reverse().join(''));
+        }
+      } catch {}
+      return null;
+    }
+
+    return tryParse(stripped) ?? tryParse(sanitize(stripped)) ?? data;
   })();
 
   if (resolved.raw) {
@@ -86,6 +131,29 @@ function isPositive(val?: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Shared sources list
+// ---------------------------------------------------------------------------
+
+function SourcesList({ sources }: { sources?: { title: string; url: string }[] }) {
+  if (!sources?.length) return null;
+  return (
+    <div style={{ marginTop: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '12px 16px' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)', letterSpacing: '0.1em', marginBottom: 8 }}>SOURCES</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {sources.map((s, i) => (
+          <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            title={s.url}
+          >
+            ↗ {s.title || s.url}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // LATENT — events as cards, revisions as compact rows
 // ---------------------------------------------------------------------------
 
@@ -126,6 +194,7 @@ function LatentView({ data }: { data: any }) {
           </div>
         </Section>
       )}
+      <SourcesList sources={data._sources} />
     </div>
   );
 }
@@ -192,36 +261,146 @@ function DefinitiveView({ data }: { data: any }) {
 // HORIZON — catalyst cards
 // ---------------------------------------------------------------------------
 
+function CaseBox({ summary, points, color, bg, arrow, open: openProp, onClick: onClickProp }: {
+  summary: string; points?: string[]; color: string; bg: string; arrow: string;
+  open?: boolean; onClick?: () => void;
+}) {
+  const [selfOpen, setSelfOpen] = useState(false);
+  const controlled = onClickProp !== undefined;
+  const isOpen = controlled ? openProp : selfOpen;
+  const handleClick = controlled ? onClickProp : () => setSelfOpen((v) => !v);
+  const pts = (points || []).filter(Boolean);
+  const hasPoints = pts.length > 0;
+
+  return (
+    <div style={{ fontSize: 12, color, background: bg, borderRadius: 3, overflow: 'hidden' }}>
+      <div
+        onClick={hasPoints ? handleClick : undefined}
+        style={{ padding: '8px 10px', cursor: hasPoints ? 'pointer' : 'default' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+          <span style={{ flexShrink: 0 }}>{arrow}</span>
+          <span style={{ flex: 1, lineHeight: 1.5 }}>{summary}</span>
+        </div>
+        {hasPoints && !controlled && (
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${color}22`, display: 'flex', justifyContent: 'center', gap: 5, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em', opacity: 0.8 }}>
+            <span style={{ fontSize: 14 }}>{isOpen ? '▴' : '▾'}</span>
+            <span>{isOpen ? 'HIDE DETAIL' : 'SHOW DETAIL'}</span>
+          </div>
+        )}
+      </div>
+      {isOpen && hasPoints && !controlled && (
+        <ul style={{ margin: '0 0 8px 0', paddingLeft: 28, paddingRight: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {pts.map((pt, j) => (
+            <li key={j} style={{ fontSize: 12, color, lineHeight: 1.55 }}>{pt}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function HorizonView({ data }: { data: any }) {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {data.catalysts?.map((c: any, i: number) => (
-        <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, flex: 1, minWidth: 0 }}>{c.event}</span>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
-              {c.confidence && <span className={`tag tag-${c.confidence?.toLowerCase()}`}>{c.confidence}</span>}
-              {c.estimatedMagnitude && <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--yellow)', fontSize: 12 }}>{c.estimatedMagnitude}</span>}
-              <SourceLink url={c.source} />
+      {data.catalysts?.map((c: any, i: number) => {
+        const bullPts = (c.bullPoints || []).filter(Boolean);
+        const bearPts = (c.bearPoints || []).filter(Boolean);
+        const hasDetails = bullPts.length > 0 || bearPts.length > 0;
+        const isOpen = openIdx === i;
+
+        return (
+          <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, flex: 1, minWidth: 0 }}>{c.event}</span>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
+                {c.confidence && <span className={`tag tag-${c.confidence?.toLowerCase()}`}>{c.confidence}</span>}
+                {c.estimatedMagnitude && <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--yellow)', fontSize: 12 }}>{c.estimatedMagnitude}</span>}
+                <SourceLink url={c.source} />
+              </div>
             </div>
-          </div>
-          {c.expectedTiming && (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{c.expectedTiming}</div>
-          )}
-          <div className="grid-2" style={{ gap: 8 }}>
-            {c.bullCase && (
-              <div style={{ fontSize: 12, color: 'var(--green)', background: 'rgba(46,204,135,0.07)', borderRadius: 3, padding: '6px 8px' }}>
-                ↑ {c.bullCase}
+            {c.expectedTiming && (
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', marginBottom: 8 }}>{c.expectedTiming}</div>
+            )}
+            <div className="grid-2" style={{ gap: 8 }}>
+              {c.bullCase && (
+                <CaseBox
+                  summary={c.bullCase}
+                  points={bullPts}
+                  color="var(--green)"
+                  bg="rgba(46,204,135,0.07)"
+                  arrow="↑"
+                  open={isOpen}
+                  onClick={hasDetails ? () => setOpenIdx(isOpen ? null : i) : undefined}
+                />
+              )}
+              {c.bearCase && (
+                <CaseBox
+                  summary={c.bearCase}
+                  points={bearPts}
+                  color="var(--red)"
+                  bg="rgba(255,85,85,0.07)"
+                  arrow="↓"
+                  open={isOpen}
+                  onClick={hasDetails ? () => setOpenIdx(isOpen ? null : i) : undefined}
+                />
+              )}
+            </div>
+
+            {hasDetails && (
+              <div
+                onClick={() => setOpenIdx(isOpen ? null : i)}
+                style={{
+                  marginTop: 8,
+                  paddingTop: 8,
+                  borderTop: '1px solid var(--border)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                  color: 'var(--muted)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  letterSpacing: '0.06em',
+                  userSelect: 'none',
+                }}
+              >
+                <span style={{ fontSize: 14 }}>{isOpen ? '▴' : '▾'}</span>
+                <span>{isOpen ? 'HIDE DETAIL' : 'SHOW DETAIL'}</span>
               </div>
             )}
-            {c.bearCase && (
-              <div style={{ fontSize: 12, color: 'var(--red)', background: 'rgba(255,85,85,0.07)', borderRadius: 3, padding: '6px 8px' }}>
-                ↓ {c.bearCase}
+
+            {isOpen && (
+              <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                {bullPts.length > 0 && (
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green)', letterSpacing: '0.1em', marginBottom: 8 }}>BULL CASE</div>
+                    <ul style={{ margin: 0, paddingLeft: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {bullPts.map((pt: string, j: number) => (
+                        <li key={j} style={{ fontSize: 12, color: 'var(--green)', lineHeight: 1.55 }}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {bearPts.length > 0 && (
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red)', letterSpacing: '0.1em', marginBottom: 8 }}>BEAR CASE</div>
+                    <ul style={{ margin: 0, paddingLeft: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {bearPts.map((pt: string, j: number) => (
+                        <li key={j} style={{ fontSize: 12, color: 'var(--red)', lineHeight: 1.55 }}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
-      ))}
+        );
+      })}
+      <SourcesList sources={data._sources} />
     </div>
   );
 }
@@ -266,12 +445,24 @@ function MacroView({ data }: { data: any }) {
       <div className="grid-2">
         {data.riskOn && (
           <Section title="RISK-ON">
-            <p style={{ fontSize: 13, lineHeight: 1.7 }}>{data.riskOn}</p>
+            <CaseBox
+              summary={data.riskOn}
+              points={data.riskOnPoints}
+              color="var(--green)"
+              bg="transparent"
+              arrow="↑"
+            />
           </Section>
         )}
         {data.riskOff && (
           <Section title="RISK-OFF">
-            <p style={{ fontSize: 13, lineHeight: 1.7 }}>{data.riskOff}</p>
+            <CaseBox
+              summary={data.riskOff}
+              points={data.riskOffPoints}
+              color="var(--red)"
+              bg="transparent"
+              arrow="↓"
+            />
           </Section>
         )}
       </div>

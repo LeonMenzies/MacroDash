@@ -16,6 +16,7 @@ function CatalystTickerRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
+      <div className="app-shell">
       <Nav />
       <main className="page-main">
         <Routes>
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      </div>
     </BrowserRouter>
   );
 }
